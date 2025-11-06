@@ -1,0 +1,357 @@
+/**
+ * QuickAddTask Component
+ * Comprehensive modal for creating a new task with all options
+ * Triggered by the floating action button
+ */
+
+import { useState, useEffect } from 'react';
+import { X, Calendar, Plus, Check } from 'lucide-react';
+import { useTaskStore } from '../../stores/taskStore';
+import { useUIStore } from '../../stores/uiStore';
+import { useLabelStore } from '../../stores/labelStore';
+import { logger } from '../../utils/logger';
+
+// Map colors to Tailwind classes
+const getColorClasses = (color: string) => {
+  const colorMap: Record<string, { bg: string; text: string }> = {
+    '#ef4444': { bg: 'bg-red-500', text: 'text-white' },
+    '#f97316': { bg: 'bg-orange-500', text: 'text-white' },
+    '#f59e0b': { bg: 'bg-amber-500', text: 'text-white' },
+    '#84cc16': { bg: 'bg-lime-500', text: 'text-white' },
+    '#22c55e': { bg: 'bg-green-500', text: 'text-white' },
+    '#06b6d4': { bg: 'bg-cyan-500', text: 'text-white' },
+    '#3b82f6': { bg: 'bg-blue-500', text: 'text-white' },
+    '#8b5cf6': { bg: 'bg-violet-500', text: 'text-white' },
+    '#ec4899': { bg: 'bg-pink-500', text: 'text-white' },
+  };
+  return colorMap[color] || colorMap['#3b82f6'];
+};
+
+export default function QuickAddTask() {
+  const { modals, closeQuickAdd, selectedListId, parentTaskId } = useUIStore();
+  const { taskLists, createTask, getTaskById } = useTaskStore();
+  const { labels, getLabelById } = useLabelStore();
+
+  const [listId, setListId] = useState('');
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [status, setStatus] = useState<'needsAction' | 'completed'>('needsAction');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Set default list when modal opens (use selectedListId if available)
+  useEffect(() => {
+    if (modals.quickAdd && taskLists.length > 0) {
+      if (selectedListId) {
+        setListId(selectedListId);
+      } else if (!listId) {
+        setListId(taskLists[0].id);
+      }
+    }
+  }, [modals.quickAdd, taskLists, listId, selectedListId]);
+
+  // Get parent task for display
+  const parentTask = parentTaskId && listId ? getTaskById(listId, parentTaskId) : null;
+
+  if (!modals.quickAdd) {
+    return null;
+  }
+
+  const handleClose = () => {
+    logger.log('[QuickAddTask] Closing modal');
+    // Reset form
+    setTitle('');
+    setNotes('');
+    setDueDate('');
+    setStatus('needsAction');
+    setSelectedLabels([]);
+    setShowLabelPicker(false);
+    closeQuickAdd();
+  };
+
+  const handleCreate = async () => {
+    if (!title.trim() || !listId) {
+      return;
+    }
+
+    logger.log('[QuickAddTask] Creating new task');
+    setIsSubmitting(true);
+
+    try {
+      // Convert YYYY-MM-DD to RFC 3339 timestamp at midnight UTC
+      let dueISO: string | undefined = undefined;
+      if (dueDate) {
+        const [year, month, day] = dueDate.split('-').map(Number);
+        const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        dueISO = utcDate.toISOString();
+      }
+
+      await createTask(listId, {
+        title: title.trim(),
+        notes: notes.trim() || undefined,
+        due: dueISO,
+        status,
+        labels: selectedLabels,
+        parent: parentTaskId || undefined,
+      });
+
+      handleClose();
+    } catch (error) {
+      logger.error('[QuickAddTask] Failed to create task:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleLabel = (labelId: string) => {
+    setSelectedLabels(prev =>
+      prev.includes(labelId)
+        ? prev.filter(id => id !== labelId)
+        : [...prev, labelId]
+    );
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.metaKey) {
+      handleCreate();
+    } else if (e.key === 'Escape') {
+      handleClose();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {parentTask ? 'Create Subtask' : 'Create New Task'}
+            </h2>
+            {parentTask && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Subtask of: {parentTask.title}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" onKeyDown={handleKeyDown}>
+          {/* List selection */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              List
+            </label>
+            <select
+              value={listId}
+              onChange={(e) => setListId(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
+            >
+              {taskLists.map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+              placeholder="Task title..."
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground resize-none"
+              placeholder="Add notes..."
+            />
+          </div>
+
+          {/* Due date */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Due Date
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+              />
+            </div>
+          </div>
+
+          {/* Labels */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Labels
+            </label>
+            <div className="space-y-2">
+              {/* Selected labels */}
+              {selectedLabels.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedLabels.map(labelId => {
+                    const label = getLabelById(labelId);
+                    if (!label) return null;
+                    return (
+                      <button
+                        key={labelId}
+                        onClick={() => toggleLabel(labelId)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text} hover:opacity-80 transition-opacity`}
+                      >
+                        {label.name} ×
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No labels assigned</p>
+              )}
+
+              {/* Label picker */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowLabelPicker(!showLabelPicker)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Label</span>
+                </button>
+
+                {showLabelPicker && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowLabelPicker(false)}
+                    />
+
+                    {/* Dropdown */}
+                    <div className="absolute left-0 top-full mt-1 w-64 bg-card border border-border rounded-lg shadow-lg z-20 p-2 max-h-60 overflow-y-auto">
+                      {labels.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2 text-center">
+                          No labels yet. Create one in the label manager!
+                        </p>
+                      ) : (
+                        <div className="space-y-1">
+                          {labels.map(label => {
+                            const isSelected = selectedLabels.includes(label.id);
+                            return (
+                              <button
+                                key={label.id}
+                                onClick={() => toggleLabel(label.id)}
+                                className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors ${
+                                  isSelected ? 'bg-accent' : ''
+                                }`}
+                              >
+                                <div
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text}`}
+                                >
+                                  {label.name}
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-primary ml-auto" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Status toggle */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={status === 'completed'}
+                onChange={(e) => setStatus(e.target.checked ? 'completed' : 'needsAction')}
+                className="sr-only"
+              />
+              <div
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                  status === 'completed'
+                    ? 'bg-primary border-primary'
+                    : 'border-muted-foreground'
+                }`}
+              >
+                {status === 'completed' && <Check className="w-4 h-4 text-primary-foreground" />}
+              </div>
+              <span className="text-sm text-foreground">Mark as completed</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm text-foreground hover:bg-accent rounded-lg transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!title.trim() || !listId || isSubmitting}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                <span>Creating...</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                <span>Create Task</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
