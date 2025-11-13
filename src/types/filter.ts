@@ -11,7 +11,8 @@ export interface DateRange {
 
 export interface ActiveFilters {
   search: string;
-  labels: string[]; // Label IDs
+  labels: string[]; // Label IDs to include
+  excludeLabels: string[]; // Label IDs to exclude
   status?: TaskStatus;
   dateRange?: DateRange;
   hasNotes: boolean;

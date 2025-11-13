@@ -8,6 +8,7 @@ import { persist } from 'zustand/middleware';
 import { Task, SortOption } from '../types/task';
 import { ActiveFilters, FilterPreset, DEFAULT_FILTER_PRESETS } from '../types/filter';
 import { logger } from '../utils/logger';
+import { useLabelStore } from './labelStore';
 
 interface FilterState {
   activeFilters: ActiveFilters;
@@ -19,6 +20,8 @@ interface FilterState {
   setSearchQuery: (query: string) => void;
   toggleLabelFilter: (labelId: string) => void;
   setLabelFilters: (labelIds: string[]) => void;
+  toggleExcludeLabelFilter: (labelId: string) => void;
+  setExcludeLabelFilters: (labelIds: string[]) => void;
   setStatusFilter: (status: 'needsAction' | 'completed' | undefined) => void;
   setDateRangeFilter: (range?: { start?: Date; end?: Date }) => void;
   setHasNotesFilter: (hasNotes: boolean) => void;
@@ -39,6 +42,7 @@ interface FilterState {
 const DEFAULT_FILTERS: ActiveFilters = {
   search: '',
   labels: [],
+  excludeLabels: [],
   status: undefined,
   dateRange: undefined,
   hasNotes: false,
@@ -91,6 +95,37 @@ export const useFilterStore = create<FilterState>()(
         logger.log('[FilterStore] Setting label filters:', labelIds);
         set((state) => ({
           activeFilters: { ...state.activeFilters, labels: labelIds },
+          activePresetId: null,
+        }));
+      },
+
+      /**
+       * Toggles an exclude label filter on/off
+       */
+      toggleExcludeLabelFilter: (labelId: string) => {
+        logger.log('[FilterStore] Toggling exclude label filter:', labelId);
+        set((state) => {
+          const index = state.activeFilters.excludeLabels.indexOf(labelId);
+          const newExcludeLabels = [...state.activeFilters.excludeLabels];
+          if (index !== -1) {
+            newExcludeLabels.splice(index, 1);
+          } else {
+            newExcludeLabels.push(labelId);
+          }
+          return {
+            activeFilters: { ...state.activeFilters, excludeLabels: newExcludeLabels },
+            activePresetId: null,
+          };
+        });
+      },
+
+      /**
+       * Sets multiple exclude label filters at once
+       */
+      setExcludeLabelFilters: (labelIds: string[]) => {
+        logger.log('[FilterStore] Setting exclude label filters:', labelIds);
+        set((state) => ({
+          activeFilters: { ...state.activeFilters, excludeLabels: labelIds },
           activePresetId: null,
         }));
       },
@@ -244,10 +279,17 @@ export const useFilterStore = create<FilterState>()(
           );
         }
 
-        // Label filter
+        // Label filter (include)
         if (activeFilters.labels.length > 0) {
           filtered = filtered.filter((task) =>
             task.labels?.some((labelId) => activeFilters.labels.includes(labelId))
+          );
+        }
+
+        // Exclude label filter
+        if (activeFilters.excludeLabels.length > 0) {
+          filtered = filtered.filter((task) =>
+            !task.labels?.some((labelId) => activeFilters.excludeLabels.includes(labelId))
           );
         }
 
@@ -388,6 +430,42 @@ export const useFilterStore = create<FilterState>()(
               return listB.localeCompare(listA);
             });
 
+          case 'label-asc':
+            return sorted.sort((a, b) => {
+              // Tasks without labels come last
+              if (!a.labels || a.labels.length === 0) return 1;
+              if (!b.labels || b.labels.length === 0) return -1;
+
+              // Get the first label for each task
+              const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
+              const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+
+              // If labels don't exist, treat as no label
+              if (!labelA) return 1;
+              if (!labelB) return -1;
+
+              // Sort by label order property
+              return labelA.order - labelB.order;
+            });
+
+          case 'label-desc':
+            return sorted.sort((a, b) => {
+              // Tasks without labels come last
+              if (!a.labels || a.labels.length === 0) return 1;
+              if (!b.labels || b.labels.length === 0) return -1;
+
+              // Get the first label for each task
+              const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
+              const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+
+              // If labels don't exist, treat as no label
+              if (!labelA) return 1;
+              if (!labelB) return -1;
+
+              // Sort by label order property (reversed)
+              return labelB.order - labelA.order;
+            });
+
           default:
             return sorted;
         }
@@ -409,6 +487,7 @@ export const useFilterStore = create<FilterState>()(
         return (
           activeFilters.search !== '' ||
           activeFilters.labels.length > 0 ||
+          activeFilters.excludeLabels.length > 0 ||
           activeFilters.status !== undefined ||
           activeFilters.dateRange !== undefined ||
           activeFilters.hasNotes ||

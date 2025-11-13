@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Search, Filter, X, ArrowUpDown, Tag, Check, LayoutGrid, List } from 'lucide-react';
+import { Search, Filter, X, ArrowUpDown, Tag, Ban, Check, LayoutGrid, List } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -34,13 +34,16 @@ export default function FilterBar() {
     setSearchQuery,
     setStatusFilter,
     toggleLabelFilter,
+    toggleExcludeLabelFilter,
     setSortOption,
     clearFilters,
     hasActiveFilters,
   } = useFilterStore();
-  const { labels } = useLabelStore();
+  const { getSortedLabels } = useLabelStore();
+  const labels = getSortedLabels();
   const { viewMode, setViewMode } = useUIStore();
   const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [showExcludeLabelPicker, setShowExcludeLabelPicker] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -180,6 +183,69 @@ export default function FilterBar() {
         )}
       </div>
 
+      {/* Exclude Label filter */}
+      <div className="relative flex items-center gap-2">
+        <Ban className="w-4 h-4 text-muted-foreground" />
+        <button
+          onClick={() => setShowExcludeLabelPicker(!showExcludeLabelPicker)}
+          className={`px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer hover:bg-accent transition-colors flex items-center gap-2 ${
+            activeFilters.excludeLabels.length > 0 ? 'border-primary' : ''
+          }`}
+        >
+          <span>
+            {activeFilters.excludeLabels.length > 0
+              ? `Exclude ${activeFilters.excludeLabels.length}`
+              : 'Exclude'}
+          </span>
+        </button>
+
+        {showExcludeLabelPicker && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowExcludeLabelPicker(false)}
+            />
+
+            {/* Dropdown */}
+            <div className="absolute left-0 top-full mt-1 w-64 bg-card border border-border rounded-lg shadow-lg z-20 p-2 max-h-60 overflow-y-auto">
+              {labels.length === 0 ? (
+                <p className="text-xs text-muted-foreground p-2 text-center">
+                  No labels yet. Create one in the label manager!
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground p-2 border-b border-border">
+                    Hide tasks with these labels
+                  </div>
+                  {labels.map((label) => {
+                    const isSelected = activeFilters.excludeLabels.includes(label.id);
+                    return (
+                      <button
+                        key={label.id}
+                        onClick={() => toggleExcludeLabelFilter(label.id)}
+                        className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors ${
+                          isSelected ? 'bg-accent' : ''
+                        }`}
+                      >
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text}`}
+                        >
+                          {label.name}
+                        </div>
+                        {isSelected && (
+                          <Check className="w-4 h-4 text-primary ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Sort dropdown */}
       <div className="flex items-center gap-2">
         <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
@@ -196,6 +262,8 @@ export default function FilterBar() {
           <option value="status">Status</option>
           <option value="list-asc">List (A-Z)</option>
           <option value="list-desc">List (Z-A)</option>
+          <option value="label-asc">Label (A-Z)</option>
+          <option value="label-desc">Label (Z-A)</option>
         </select>
       </div>
 

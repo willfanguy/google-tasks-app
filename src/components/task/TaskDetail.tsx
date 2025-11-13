@@ -31,7 +31,8 @@ const getColorClasses = (color: string) => {
 export default function TaskDetail() {
   const { modals, selectedTaskId, selectedListId, closeTaskDetail, openQuickAdd } = useUIStore();
   const { getTaskById, updateTask, deleteTask, getTasksByList } = useTaskStore();
-  const { labels, getTaskLabels, setTaskLabels, getLabelById } = useLabelStore();
+  const { getTaskLabels, setTaskLabels, getLabelById, getSortedLabels } = useLabelStore();
+  const labels = getSortedLabels();
 
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -135,6 +136,12 @@ export default function TaskDetail() {
     openQuickAdd(selectedListId, task.id);
   };
 
+  const handleToggleSubtask = async (subtaskId: string, currentStatus: 'needsAction' | 'completed') => {
+    logger.log('[TaskDetail] Toggling subtask completion:', subtaskId);
+    const newStatus = currentStatus === 'completed' ? 'needsAction' : 'completed';
+    await updateTask(selectedListId, subtaskId, { status: newStatus });
+  };
+
   // Get subtasks for this task
   const allTasksInList = selectedListId ? getTasksByList(selectedListId) : [];
   const subtasks = getSubtasks(task.id, allTasksInList);
@@ -149,7 +156,7 @@ export default function TaskDetail() {
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-[840px] max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">Task Details</h2>
@@ -335,17 +342,18 @@ export default function TaskDetail() {
                     key={subtask.id}
                     className="flex items-center gap-2 p-2 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
                   >
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                    <button
+                      onClick={() => handleToggleSubtask(subtask.id, subtask.status)}
+                      className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors hover:scale-110 ${
                         subtask.status === 'completed'
                           ? 'bg-primary border-primary'
-                          : 'border-muted-foreground'
+                          : 'border-muted-foreground hover:border-primary'
                       }`}
                     >
                       {subtask.status === 'completed' && (
                         <Check className="w-3 h-3 text-primary-foreground" />
                       )}
-                    </div>
+                    </button>
                     <span
                       className={`text-xs flex-1 ${
                         subtask.status === 'completed'
