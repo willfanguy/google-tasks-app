@@ -10,12 +10,17 @@ import {
   CheckSquare,
   ChevronRight,
   ChevronDown,
+  Flag,
+  CheckCheck,
+  Square,
 } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { Task } from "../../types/task";
+import { PRIORITY_LEVELS } from "../../types/priority";
 import { useTaskStore } from "../../stores/taskStore";
 import { useUIStore } from "../../stores/uiStore";
 import { useLabelStore } from "../../stores/labelStore";
+import { useSelectionStore } from "../../stores/selectionStore";
 import { TaskWithChildren } from "../../utils/taskHierarchy";
 import { logger } from "../../utils/logger";
 
@@ -50,7 +55,12 @@ export default function TaskCard({
 }: TaskCardProps) {
   const { toggleTaskStatus } = useTaskStore();
   const { openTaskDetail, toggleTaskCollapse, isTaskCollapsed } = useUIStore();
-  const { getTaskLabels, getLabelById } = useLabelStore();
+  const { getTaskLabels, getLabelById, getTaskPriority } = useLabelStore();
+  const { isSelectionMode, isTaskSelected, toggleTaskSelection } = useSelectionStore();
+
+  // Get task priority
+  const taskPriority = getTaskPriority(task.id);
+  const hasPriority = taskPriority !== undefined;
 
   // Setup draggable
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -75,8 +85,15 @@ export default function TaskCard({
   };
 
   const handleCardClick = () => {
-    logger.log(`[TaskCard] Opening task detail: ${task.id}`);
-    openTaskDetail(task.id, listId);
+    // In selection mode, clicking the card toggles selection
+    if (isSelectionMode) {
+      logger.log(`[TaskCard] Toggling task selection: ${task.id}`);
+      toggleTaskSelection(task.id);
+    } else {
+      // Otherwise, open the task detail
+      logger.log(`[TaskCard] Opening task detail: ${task.id}`);
+      openTaskDetail(task.id, listId);
+    }
   };
 
   const handleCollapseClick = (e: React.MouseEvent) => {
@@ -85,7 +102,14 @@ export default function TaskCard({
     toggleTaskCollapse(task.id);
   };
 
+  const handleSelectionCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening detail modal
+    logger.log(`[TaskCard] Toggling task selection: ${task.id}`);
+    toggleTaskSelection(task.id);
+  };
+
   const isCompleted = task.status === "completed";
+  const isSelected = isTaskSelected(task.id);
   const hasNotes = task.notes && task.notes.length > 0;
   const hasDueDate = task.due !== undefined;
   const hasSubtasks = subtaskCount > 0;
@@ -184,9 +208,11 @@ export default function TaskCard({
       {...attributes}
       {...listeners}
       onClick={handleCardClick}
-      className={`p-3 rounded-lg border bg-background hover:bg-accent/50 cursor-grab active:cursor-grabbing transition-colors relative ${
-        isCompleted ? "opacity-70" : ""
-      } ${isDragging ? "opacity-50" : ""} ${
+      className={`p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors relative ${
+        isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+      } ${isCompleted ? "opacity-70" : ""} ${isDragging ? "opacity-50" : ""} ${
+        isSelected ? "ring-2 ring-primary bg-accent/30" : ""
+      } ${
         isOverdue && !isCompleted
           ? "border-l-4 border-l-red-500 border-t border-r border-b border-border"
           : isDueToday && !isCompleted
@@ -196,6 +222,20 @@ export default function TaskCard({
     >
       {/* Title and checkbox */}
       <div className="flex items-start gap-2">
+        {/* Selection checkbox (only shown in selection mode) */}
+        {isSelectionMode && (
+          <button
+            onClick={handleSelectionCheckboxClick}
+            className="mt-0.5 flex-shrink-0"
+            title={isSelected ? "Deselect task" : "Select task"}
+          >
+            {isSelected ? (
+              <CheckSquare className="w-5 h-5 text-blue-600 fill-blue-600" />
+            ) : (
+              <Square className="w-5 h-5 text-muted-foreground hover:text-blue-600 transition-colors" />
+            )}
+          </button>
+        )}
         {/* Collapse/expand button for parent tasks */}
         {hasSubtasks && (
           <button
@@ -248,8 +288,19 @@ export default function TaskCard({
       </div>
 
       {/* Metadata row */}
-      {(hasDueDate || hasNotes) && (
+      {(hasDueDate || hasNotes || hasPriority) && (
         <div className="mt-2 flex items-center gap-3 text-xs">
+          {/* Priority */}
+          {hasPriority && (
+            <div
+              className="flex items-center gap-1 font-medium"
+              style={{ color: PRIORITY_LEVELS[taskPriority!].color }}
+            >
+              <Flag className="w-3.5 h-3.5" />
+              <span>{PRIORITY_LEVELS[taskPriority!].label}</span>
+            </div>
+          )}
+
           {/* Due date */}
           {hasDueDate && (
             <div

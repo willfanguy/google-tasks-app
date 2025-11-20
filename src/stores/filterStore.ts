@@ -7,12 +7,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Task, SortOption } from '../types/task';
 import { ActiveFilters, FilterPreset, DEFAULT_FILTER_PRESETS } from '../types/filter';
+import { Priority, PRIORITY_LEVELS } from '../types/priority';
 import { logger } from '../utils/logger';
 import { useLabelStore } from './labelStore';
 
 interface FilterState {
   activeFilters: ActiveFilters;
-  sortOption: SortOption;
+  sortOptions: SortOption[]; // Array of up to 3 sort options [primary, secondary, tertiary]
   filterPresets: FilterPreset[];
   activePresetId: string | null;
 
@@ -23,10 +24,14 @@ interface FilterState {
   toggleExcludeLabelFilter: (labelId: string) => void;
   setExcludeLabelFilters: (labelIds: string[]) => void;
   setStatusFilter: (status: 'needsAction' | 'completed' | undefined) => void;
+  setPriorityFilter: (priority: Priority | undefined) => void;
   setDateRangeFilter: (range?: { start?: Date; end?: Date }) => void;
   setHasNotesFilter: (hasNotes: boolean) => void;
   setHasSubtasksFilter: (hasSubtasks: boolean) => void;
-  setSortOption: (option: SortOption) => void;
+  setPrimarySortOption: (option: SortOption | null) => void;
+  setSecondarySortOption: (option: SortOption | null) => void;
+  setTertiarySortOption: (option: SortOption | null) => void;
+  clearSortOptions: () => void;
   clearFilters: () => void;
   applyPreset: (presetId: string) => void;
   createPreset: (name: string, icon?: string) => void;
@@ -37,6 +42,7 @@ interface FilterState {
   getSortedTasks: (tasks: Task[]) => Task[];
   getFilteredAndSortedTasks: (tasks: Task[]) => Task[];
   hasActiveFilters: () => boolean;
+  hasActiveSorts: () => boolean;
 }
 
 const DEFAULT_FILTERS: ActiveFilters = {
@@ -44,6 +50,7 @@ const DEFAULT_FILTERS: ActiveFilters = {
   labels: [],
   excludeLabels: [],
   status: undefined,
+  priority: undefined,
   dateRange: undefined,
   hasNotes: false,
   hasSubtasks: false,
@@ -53,7 +60,7 @@ export const useFilterStore = create<FilterState>()(
   persist(
     (set, get) => ({
       activeFilters: DEFAULT_FILTERS,
-      sortOption: 'manual',
+      sortOptions: [], // Start with no sorts active
       filterPresets: DEFAULT_FILTER_PRESETS,
       activePresetId: null,
 
@@ -142,6 +149,17 @@ export const useFilterStore = create<FilterState>()(
       },
 
       /**
+       * Sets the priority filter
+       */
+      setPriorityFilter: (priority: Priority | undefined) => {
+        logger.log('[FilterStore] Setting priority filter:', priority);
+        set((state) => ({
+          activeFilters: { ...state.activeFilters, priority },
+          activePresetId: null,
+        }));
+      },
+
+      /**
        * Sets the date range filter
        */
       setDateRangeFilter: (range?: { start?: Date; end?: Date }) => {
@@ -175,11 +193,68 @@ export const useFilterStore = create<FilterState>()(
       },
 
       /**
-       * Sets the sort option
+       * Sets the primary sort option
+       * Clears secondary and tertiary when primary changes
        */
-      setSortOption: (option: SortOption) => {
-        logger.log('[FilterStore] Setting sort option:', option);
-        set({ sortOption: option });
+      setPrimarySortOption: (option: SortOption | null) => {
+        logger.log('[FilterStore] Setting primary sort option:', option);
+        if (option === null) {
+          set({ sortOptions: [] });
+        } else {
+          set({ sortOptions: [option] });
+        }
+      },
+
+      /**
+       * Sets the secondary sort option
+       * Only valid when primary is set
+       */
+      setSecondarySortOption: (option: SortOption | null) => {
+        logger.log('[FilterStore] Setting secondary sort option:', option);
+        const { sortOptions } = get();
+
+        if (sortOptions.length === 0) {
+          logger.warn('[FilterStore] Cannot set secondary sort without primary');
+          return;
+        }
+
+        if (option === null) {
+          // Remove secondary and tertiary
+          set({ sortOptions: [sortOptions[0]] });
+        } else {
+          // Set secondary, remove tertiary if it existed
+          set({ sortOptions: [sortOptions[0], option] });
+        }
+      },
+
+      /**
+       * Sets the tertiary sort option
+       * Only valid when primary and secondary are set
+       */
+      setTertiarySortOption: (option: SortOption | null) => {
+        logger.log('[FilterStore] Setting tertiary sort option:', option);
+        const { sortOptions } = get();
+
+        if (sortOptions.length < 2) {
+          logger.warn('[FilterStore] Cannot set tertiary sort without primary and secondary');
+          return;
+        }
+
+        if (option === null) {
+          // Remove tertiary
+          set({ sortOptions: [sortOptions[0], sortOptions[1]] });
+        } else {
+          // Set tertiary
+          set({ sortOptions: [sortOptions[0], sortOptions[1], option] });
+        }
+      },
+
+      /**
+       * Clears all sort options
+       */
+      clearSortOptions: () => {
+        logger.log('[FilterStore] Clearing all sort options');
+        set({ sortOptions: [] });
       },
 
       /**
@@ -194,7 +269,7 @@ export const useFilterStore = create<FilterState>()(
       },
 
       /**
-       * Applies a filter preset
+       * Applies a filter preset (including filters and sorts)
        */
       applyPreset: (presetId: string) => {
         logger.log('[FilterStore] Applying preset:', presetId);
@@ -222,19 +297,22 @@ export const useFilterStore = create<FilterState>()(
 
         set({
           activeFilters: { ...DEFAULT_FILTERS, ...filters },
+          sortOptions: preset.sortOptions ? [...preset.sortOptions] : [],
           activePresetId: presetId,
         });
       },
 
       /**
-       * Creates a new filter preset from current filters
+       * Creates a new filter preset from current filters and sorts
        */
       createPreset: (name: string, icon?: string) => {
         logger.log('[FilterStore] Creating preset:', name);
+        const currentState = get();
         const newPreset: FilterPreset = {
           id: `preset-${Date.now()}`,
           name,
-          filters: { ...get().activeFilters },
+          filters: { ...currentState.activeFilters },
+          sortOptions: currentState.sortOptions.length > 0 ? [...currentState.sortOptions] : undefined,
           icon,
         };
 
@@ -296,6 +374,14 @@ export const useFilterStore = create<FilterState>()(
         // Status filter
         if (activeFilters.status) {
           filtered = filtered.filter((task) => task.status === activeFilters.status);
+        }
+
+        // Priority filter
+        if (activeFilters.priority) {
+          filtered = filtered.filter((task) => {
+            const taskPriority = useLabelStore.getState().getTaskPriority(task.id);
+            return taskPriority === activeFilters.priority;
+          });
         }
 
         // Date range filter
@@ -362,83 +448,85 @@ export const useFilterStore = create<FilterState>()(
       },
 
       /**
-       * Sorts tasks based on sort option
+       * Sorts tasks based on multi-level sort options
+       * Applies primary, secondary, and tertiary sorts in order
        */
       getSortedTasks: (tasks: Task[]) => {
-        const { sortOption } = get();
+        const { sortOptions } = get();
         const sorted = [...tasks];
 
-        switch (sortOption) {
-          case 'manual':
-            // Keep original order (by position or localOrder)
-            return sorted.sort((a, b) => {
+        // If no sorts, return original order
+        if (sortOptions.length === 0) {
+          return sorted;
+        }
+
+        // Helper function to compare two tasks by a specific sort option
+        const compareByOption = (a: Task, b: Task, option: SortOption): number => {
+          switch (option) {
+            case 'manual':
+              // Keep original order (by position or localOrder)
               if (a.localOrder !== undefined && b.localOrder !== undefined) {
                 return a.localOrder - b.localOrder;
               }
               return a.position.localeCompare(b.position);
-            });
 
-          case 'dueDate-asc':
-            return sorted.sort((a, b) => {
+            case 'dueDate-asc':
               if (!a.due && !b.due) return 0;
               if (!a.due) return 1;
               if (!b.due) return -1;
               return new Date(a.due).getTime() - new Date(b.due).getTime();
-            });
 
-          case 'dueDate-desc':
-            return sorted.sort((a, b) => {
+            case 'dueDate-desc':
               if (!a.due && !b.due) return 0;
               if (!a.due) return 1;
               if (!b.due) return -1;
               return new Date(b.due).getTime() - new Date(a.due).getTime();
-            });
 
-          case 'title-asc':
-            return sorted.sort((a, b) => a.title.localeCompare(b.title));
+            case 'title-asc':
+              return a.title.localeCompare(b.title);
 
-          case 'title-desc':
-            return sorted.sort((a, b) => b.title.localeCompare(a.title));
+            case 'title-desc':
+              return b.title.localeCompare(a.title);
 
-          case 'status':
-            return sorted.sort((a, b) => {
+            case 'status':
               if (a.status === b.status) return 0;
               return a.status === 'needsAction' ? -1 : 1;
-            });
 
-          case 'created-asc':
-            return sorted.sort(
-              (a, b) => new Date(a.updated).getTime() - new Date(b.updated).getTime()
-            );
+            case 'created-asc':
+              return new Date(a.updated).getTime() - new Date(b.updated).getTime();
 
-          case 'created-desc':
-            return sorted.sort(
-              (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime()
-            );
+            case 'created-desc':
+              return new Date(b.updated).getTime() - new Date(a.updated).getTime();
 
-          case 'list-asc':
-            return sorted.sort((a, b) => {
+            case 'list-asc': {
               const listA = a.listTitle || '';
               const listB = b.listTitle || '';
               return listA.localeCompare(listB);
-            });
+            }
 
-          case 'list-desc':
-            return sorted.sort((a, b) => {
+            case 'list-desc': {
               const listA = a.listTitle || '';
               const listB = b.listTitle || '';
               return listB.localeCompare(listA);
-            });
+            }
 
-          case 'label-asc':
-            return sorted.sort((a, b) => {
+            case 'label-asc': {
+              const hasLabelsA = a.labels && a.labels.length > 0;
+              const hasLabelsB = b.labels && b.labels.length > 0;
+
+              // If both have no labels, they're equal - proceed to secondary sort
+              if (!hasLabelsA && !hasLabelsB) return 0;
+
               // Tasks without labels come last
-              if (!a.labels || a.labels.length === 0) return 1;
-              if (!b.labels || b.labels.length === 0) return -1;
+              if (!hasLabelsA) return 1;
+              if (!hasLabelsB) return -1;
 
               // Get the first label for each task
               const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
               const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+
+              // If both labels don't exist, they're equal - proceed to secondary sort
+              if (!labelA && !labelB) return 0;
 
               // If labels don't exist, treat as no label
               if (!labelA) return 1;
@@ -446,17 +534,25 @@ export const useFilterStore = create<FilterState>()(
 
               // Sort by label order property
               return labelA.order - labelB.order;
-            });
+            }
 
-          case 'label-desc':
-            return sorted.sort((a, b) => {
+            case 'label-desc': {
+              const hasLabelsA = a.labels && a.labels.length > 0;
+              const hasLabelsB = b.labels && b.labels.length > 0;
+
+              // If both have no labels, they're equal - proceed to secondary sort
+              if (!hasLabelsA && !hasLabelsB) return 0;
+
               // Tasks without labels come last
-              if (!a.labels || a.labels.length === 0) return 1;
-              if (!b.labels || b.labels.length === 0) return -1;
+              if (!hasLabelsA) return 1;
+              if (!hasLabelsB) return -1;
 
               // Get the first label for each task
               const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
               const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+
+              // If both labels don't exist, they're equal - proceed to secondary sort
+              if (!labelA && !labelB) return 0;
 
               // If labels don't exist, treat as no label
               if (!labelA) return 1;
@@ -464,11 +560,60 @@ export const useFilterStore = create<FilterState>()(
 
               // Sort by label order property (reversed)
               return labelB.order - labelA.order;
-            });
+            }
 
-          default:
-            return sorted;
-        }
+            case 'priority-asc': {
+              const priorityA = useLabelStore.getState().getTaskPriority(a.id);
+              const priorityB = useLabelStore.getState().getTaskPriority(b.id);
+
+              // If both have no priority, they're equal - proceed to secondary sort
+              if (!priorityA && !priorityB) return 0;
+
+              // Tasks without priority come last
+              if (!priorityA) return 1;
+              if (!priorityB) return -1;
+
+              // Sort by priority order (lower order = higher priority)
+              return PRIORITY_LEVELS[priorityA].order - PRIORITY_LEVELS[priorityB].order;
+            }
+
+            case 'priority-desc': {
+              const priorityA = useLabelStore.getState().getTaskPriority(a.id);
+              const priorityB = useLabelStore.getState().getTaskPriority(b.id);
+
+              // If both have no priority, they're equal - proceed to secondary sort
+              if (!priorityA && !priorityB) return 0;
+
+              // Tasks without priority come last
+              if (!priorityA) return 1;
+              if (!priorityB) return -1;
+
+              // Sort by priority order reversed (higher order = lower priority)
+              return PRIORITY_LEVELS[priorityB].order - PRIORITY_LEVELS[priorityA].order;
+            }
+
+            default:
+              return 0;
+          }
+        };
+
+        // Multi-level sort: compare by primary, then secondary (if tie), then tertiary (if still tie)
+        return sorted.sort((a, b) => {
+          // Primary sort
+          const primaryResult = compareByOption(a, b, sortOptions[0]);
+          if (primaryResult !== 0 || sortOptions.length === 1) {
+            return primaryResult;
+          }
+
+          // Secondary sort (for ties in primary)
+          const secondaryResult = compareByOption(a, b, sortOptions[1]);
+          if (secondaryResult !== 0 || sortOptions.length === 2) {
+            return secondaryResult;
+          }
+
+          // Tertiary sort (for ties in secondary)
+          return compareByOption(a, b, sortOptions[2]);
+        });
       },
 
       /**
@@ -489,16 +634,25 @@ export const useFilterStore = create<FilterState>()(
           activeFilters.labels.length > 0 ||
           activeFilters.excludeLabels.length > 0 ||
           activeFilters.status !== undefined ||
+          activeFilters.priority !== undefined ||
           activeFilters.dateRange !== undefined ||
           activeFilters.hasNotes ||
           activeFilters.hasSubtasks
         );
       },
+
+      /**
+       * Checks if any sorts are currently active
+       */
+      hasActiveSorts: () => {
+        const { sortOptions } = get();
+        return sortOptions.length > 0;
+      },
     }),
     {
       name: 'filter-storage',
       partialize: (state) => ({
-        sortOption: state.sortOption,
+        sortOptions: state.sortOptions,
         filterPresets: state.filterPresets,
       }),
       // Custom storage to handle contextIsolation
@@ -506,7 +660,16 @@ export const useFilterStore = create<FilterState>()(
         getItem: (name) => {
           const str = localStorage.getItem(name);
           if (!str) return null;
-          return JSON.parse(str);
+          const parsed = JSON.parse(str);
+
+          // Migration: Convert old sortOption to sortOptions array
+          if (parsed.state?.sortOption && !parsed.state?.sortOptions) {
+            logger.log('[FilterStore] Migrating old sortOption to sortOptions array');
+            parsed.state.sortOptions = [parsed.state.sortOption];
+            delete parsed.state.sortOption;
+          }
+
+          return parsed;
         },
         setItem: (name, value) => {
           localStorage.setItem(name, JSON.stringify(value));

@@ -4,11 +4,11 @@
  */
 
 import { useState } from 'react';
-import { Search, Filter, X, ArrowUpDown, Tag, Ban, Check, LayoutGrid, List } from 'lucide-react';
+import { Search, Filter, X, Tag, Ban, Check, LayoutGrid, List, Flag } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
-import { SortOption } from '../../types/task';
+import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { logger } from '../../utils/logger';
 
 // Map colors to Tailwind classes
@@ -30,12 +30,11 @@ const getColorClasses = (color: string) => {
 export default function FilterBar() {
   const {
     activeFilters,
-    sortOption,
     setSearchQuery,
     setStatusFilter,
+    setPriorityFilter,
     toggleLabelFilter,
     toggleExcludeLabelFilter,
-    setSortOption,
     clearFilters,
     hasActiveFilters,
   } = useFilterStore();
@@ -58,8 +57,13 @@ export default function FilterBar() {
     }
   };
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortOption(e.target.value as SortOption);
+  const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'all') {
+      setPriorityFilter(undefined);
+    } else {
+      setPriorityFilter(value as Priority);
+    }
   };
 
   const handleClearFilters = () => {
@@ -120,6 +124,30 @@ export default function FilterBar() {
           <option value="all">All Tasks</option>
           <option value="needsAction">Active</option>
           <option value="completed">Completed</option>
+        </select>
+      </div>
+
+      {/* Priority filter */}
+      <div className="flex items-center gap-2">
+        <Flag
+          className="w-4 h-4"
+          style={{ color: activeFilters.priority ? PRIORITY_LEVELS[activeFilters.priority].color : undefined }}
+        />
+        <select
+          value={activeFilters.priority || 'all'}
+          onChange={handlePriorityChange}
+          className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
+          style={{
+            color: activeFilters.priority ? PRIORITY_LEVELS[activeFilters.priority].color : undefined,
+            fontWeight: activeFilters.priority ? '600' : undefined
+          }}
+        >
+          <option value="all">All Priorities</option>
+          {PRIORITY_OPTIONS.map((p) => (
+            <option key={p} value={p}>
+              {PRIORITY_LEVELS[p].label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -244,27 +272,6 @@ export default function FilterBar() {
             </div>
           </>
         )}
-      </div>
-
-      {/* Sort dropdown */}
-      <div className="flex items-center gap-2">
-        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-        <select
-          value={sortOption}
-          onChange={handleSortChange}
-          className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-        >
-          <option value="manual">Manual</option>
-          <option value="dueDate-asc">Due Date (Earliest)</option>
-          <option value="dueDate-desc">Due Date (Latest)</option>
-          <option value="title-asc">Title (A-Z)</option>
-          <option value="title-desc">Title (Z-A)</option>
-          <option value="status">Status</option>
-          <option value="list-asc">List (A-Z)</option>
-          <option value="list-desc">List (Z-A)</option>
-          <option value="label-asc">Label (A-Z)</option>
-          <option value="label-desc">Label (Z-A)</option>
-        </select>
       </div>
 
       {/* Clear filters button */}

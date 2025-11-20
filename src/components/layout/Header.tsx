@@ -3,16 +3,18 @@
  * Top navigation bar with app branding, auth status, and actions
  */
 
-import { Settings, LogOut, CheckSquare, Tag, RefreshCw, LayoutGrid, List } from 'lucide-react';
+import { Settings, LogOut, CheckSquare, Tag, RefreshCw, LayoutGrid, List, CheckCheck } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useTaskStore } from '../../stores/taskStore';
+import { useSelectionStore } from '../../stores/selectionStore';
 import { logger } from '../../utils/logger';
 
 export default function Header() {
   const { user, logout } = useAuthStore();
   const { openSettings, openLabelManager, viewMode, setViewMode } = useUIStore();
   const { syncAll, loading } = useTaskStore();
+  const { isSelectionMode, exitSelectionMode, enterSelectionMode } = useSelectionStore();
 
   const handleLogout = async () => {
     logger.log('[Header] Logout clicked');
@@ -27,6 +29,16 @@ export default function Header() {
   const handleSync = async () => {
     logger.log('[Header] Sync clicked');
     await syncAll();
+  };
+
+  const handleToggleSelectionMode = () => {
+    if (isSelectionMode) {
+      logger.log('[Header] Exiting selection mode');
+      exitSelectionMode();
+    } else {
+      logger.log('[Header] Entering selection mode');
+      enterSelectionMode();
+    }
   };
 
   return (
@@ -92,6 +104,19 @@ export default function Header() {
           title="Sync with Google Tasks"
         >
           <RefreshCw className={`w-5 h-5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
+        </button>
+
+        {/* Selection mode toggle */}
+        <button
+          onClick={handleToggleSelectionMode}
+          className={`p-2 rounded-lg transition-colors ${
+            isSelectionMode
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent'
+          }`}
+          title={isSelectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+        >
+          <CheckCheck className={`w-5 h-5 ${isSelectionMode ? '' : 'text-muted-foreground'}`} />
         </button>
 
         {/* Labels button */}

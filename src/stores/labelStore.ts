@@ -1,19 +1,21 @@
 /**
  * Label Store
- * Manages labels (tags) for tasks with localStorage persistence
- * Labels are local metadata and not synced to Google Tasks API
+ * Manages labels (tags) and priorities for tasks with localStorage persistence
+ * Labels and priorities are local metadata and not synced to Google Tasks API
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Label, DEFAULT_LABEL_COLORS, LabelColor } from '../types/label';
+import { Priority } from '../types/priority';
 import { logger } from '../utils/logger';
 
 interface LabelState {
   labels: Label[];
   taskLabels: Map<string, string[]>; // taskId -> labelIds[]
+  taskPriorities: Map<string, Priority>; // taskId -> priority
 
-  // Actions
+  // Label Actions
   createLabel: (name: string, color?: LabelColor) => Label;
   updateLabel: (id: string, updates: Partial<Label>) => void;
   deleteLabel: (id: string) => void;
@@ -22,6 +24,11 @@ interface LabelState {
   removeLabelFromTask: (taskId: string, labelId: string) => void;
   setTaskLabels: (taskId: string, labelIds: string[]) => void;
   clearTaskLabels: (taskId: string) => void;
+
+  // Priority Actions
+  setTaskPriority: (taskId: string, priority: Priority | undefined) => void;
+  getTaskPriority: (taskId: string) => Priority | undefined;
+  clearTaskPriority: (taskId: string) => void;
 
   // Getters
   getTaskLabels: (taskId: string) => string[];
@@ -35,6 +42,7 @@ export const useLabelStore = create<LabelState>()(
     (set, get) => ({
       labels: [],
       taskLabels: new Map(),
+      taskPriorities: new Map(),
 
       /**
        * Creates a new label
@@ -233,6 +241,43 @@ export const useLabelStore = create<LabelState>()(
       getSortedLabels: () => {
         return [...get().labels].sort((a, b) => a.order - b.order);
       },
+
+      /**
+       * Sets priority for a task
+       */
+      setTaskPriority: (taskId: string, priority: Priority | undefined) => {
+        logger.log(`[LabelStore] Setting priority for task ${taskId}:`, priority);
+
+        set((state) => {
+          const newTaskPriorities = new Map(state.taskPriorities);
+          if (priority) {
+            newTaskPriorities.set(taskId, priority);
+          } else {
+            newTaskPriorities.delete(taskId);
+          }
+          return { taskPriorities: newTaskPriorities };
+        });
+      },
+
+      /**
+       * Gets priority for a task
+       */
+      getTaskPriority: (taskId: string) => {
+        return get().taskPriorities.get(taskId);
+      },
+
+      /**
+       * Clears priority from a task
+       */
+      clearTaskPriority: (taskId: string) => {
+        logger.log(`[LabelStore] Clearing priority from task ${taskId}`);
+
+        set((state) => {
+          const newTaskPriorities = new Map(state.taskPriorities);
+          newTaskPriorities.delete(taskId);
+          return { taskPriorities: newTaskPriorities };
+        });
+      },
     }),
     {
       name: 'label-storage',
@@ -242,19 +287,23 @@ export const useLabelStore = create<LabelState>()(
           const str = localStorage.getItem(name);
           if (!str) return null;
           const data = JSON.parse(str);
-          // Convert taskLabels array back to Map
+          // Convert taskLabels and taskPriorities arrays back to Maps
           if (data.state?.taskLabels) {
             data.state.taskLabels = new Map(data.state.taskLabels);
+          }
+          if (data.state?.taskPriorities) {
+            data.state.taskPriorities = new Map(data.state.taskPriorities);
           }
           return data;
         },
         setItem: (name, value) => {
-          // Convert Map to array for JSON serialization
+          // Convert Maps to arrays for JSON serialization
           const serialized = {
             ...value,
             state: {
               ...value.state,
               taskLabels: Array.from(value.state.taskLabels.entries()),
+              taskPriorities: Array.from(value.state.taskPriorities.entries()),
             },
           };
           localStorage.setItem(name, JSON.stringify(serialized));

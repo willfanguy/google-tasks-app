@@ -5,10 +5,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Check } from 'lucide-react';
+import { X, Calendar, Plus, Check, Flag } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useLabelStore } from '../../stores/labelStore';
+import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { logger } from '../../utils/logger';
 
 // Map colors to Tailwind classes
@@ -30,7 +31,7 @@ const getColorClasses = (color: string) => {
 export default function QuickAddTask() {
   const { modals, closeQuickAdd, selectedListId, parentTaskId } = useUIStore();
   const { taskLists, createTask, getTaskById } = useTaskStore();
-  const { labels, getLabelById } = useLabelStore();
+  const { labels, getLabelById, setTaskPriority } = useLabelStore();
 
   const [listId, setListId] = useState('');
   const [title, setTitle] = useState('');
@@ -38,6 +39,7 @@ export default function QuickAddTask() {
   const [dueDate, setDueDate] = useState('');
   const [status, setStatus] = useState<'needsAction' | 'completed'>('needsAction');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [priority, setPriority] = useState<Priority | undefined>(undefined);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,6 +69,7 @@ export default function QuickAddTask() {
     setDueDate('');
     setStatus('needsAction');
     setSelectedLabels([]);
+    setPriority(undefined);
     setShowLabelPicker(false);
     closeQuickAdd();
   };
@@ -88,7 +91,7 @@ export default function QuickAddTask() {
         dueISO = utcDate.toISOString();
       }
 
-      await createTask(listId, {
+      const newTask = await createTask(listId, {
         title: title.trim(),
         notes: notes.trim() || undefined,
         due: dueISO,
@@ -96,6 +99,11 @@ export default function QuickAddTask() {
         labels: selectedLabels,
         parent: parentTaskId || undefined,
       });
+
+      // Set priority after task is created
+      if (priority && newTask) {
+        setTaskPriority(newTask.id, priority);
+      }
 
       handleClose();
     } catch (error) {
@@ -215,6 +223,35 @@ export default function QuickAddTask() {
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
               />
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Priority
+            </label>
+            <div className="relative">
+              <Flag
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                style={{ color: priority ? PRIORITY_LEVELS[priority].color : undefined }}
+              />
+              <select
+                value={priority || ''}
+                onChange={(e) => setPriority(e.target.value as Priority || undefined)}
+                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer appearance-none"
+                style={{
+                  color: priority ? PRIORITY_LEVELS[priority].color : undefined,
+                  fontWeight: priority ? '600' : undefined
+                }}
+              >
+                <option value="">No Priority</option>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORITY_LEVELS[p].label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

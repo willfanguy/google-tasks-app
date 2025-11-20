@@ -3,6 +3,7 @@
  */
 
 import { TaskStatus, SortOption } from './task';
+import { Priority } from './priority';
 
 export interface DateRange {
   start?: Date;
@@ -14,6 +15,7 @@ export interface ActiveFilters {
   labels: string[]; // Label IDs to include
   excludeLabels: string[]; // Label IDs to exclude
   status?: TaskStatus;
+  priority?: Priority; // Priority filter
   dateRange?: DateRange;
   hasNotes: boolean;
   hasSubtasks: boolean;
@@ -23,6 +25,7 @@ export interface FilterPreset {
   id: string;
   name: string;
   filters: Partial<ActiveFilters>;
+  sortOptions?: SortOption[]; // Optional array of sort options (max 3)
   icon?: string;
 }
 

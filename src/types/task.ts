@@ -71,7 +71,9 @@ export type SortOption =
   | 'list-asc'
   | 'list-desc'
   | 'label-asc'
-  | 'label-desc';
+  | 'label-desc'
+  | 'priority-asc'
+  | 'priority-desc';
 
 export interface TaskView {
   id: string;

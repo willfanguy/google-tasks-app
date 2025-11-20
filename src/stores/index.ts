@@ -9,6 +9,7 @@ export { useBoardStore } from './boardStore';
 export { useFilterStore } from './filterStore';
 export { useLabelStore } from './labelStore';
 export { useUIStore } from './uiStore';
+export { useSelectionStore } from './selectionStore';
 
 // Re-export types for convenience
 export type { Task, TaskList, SortOption } from '../types/task';

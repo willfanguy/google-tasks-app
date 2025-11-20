@@ -8,6 +8,8 @@ import { ChevronLeft, ChevronRight, Plus, List, Circle, CheckCircle, Calendar, T
 import { useUIStore } from '../../stores/uiStore';
 import { useFilterStore } from '../../stores/filterStore';
 import { logger } from '../../utils/logger';
+import InputDialog from '../common/InputDialog';
+import AlertDialog from '../common/AlertDialog';
 
 // Map icon names to components
 const iconMap: Record<string, any> = {
@@ -19,8 +21,10 @@ const iconMap: Record<string, any> = {
 
 export default function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const { filterPresets, activePresetId, applyPreset, createPreset, deletePreset, hasActiveFilters } = useFilterStore();
+  const { filterPresets, activePresetId, applyPreset, createPreset, deletePreset, hasActiveFilters, hasActiveSorts } = useFilterStore();
   const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showNoFiltersAlert, setShowNoFiltersAlert] = useState(false);
 
   const handlePresetSelect = (presetId: string) => {
     logger.log('[Sidebar] Preset selected:', presetId);
@@ -29,18 +33,30 @@ export default function Sidebar() {
   };
 
   const handleCreatePreset = () => {
-    if (!hasActiveFilters()) {
-      alert('Please apply some filters first before saving a view.');
+    const filtersActive = hasActiveFilters();
+    const sortsActive = hasActiveSorts();
+
+    logger.log('[Sidebar] Button clicked - Filters:', filtersActive, 'Sorts:', sortsActive);
+
+    if (!filtersActive && !sortsActive) {
+      logger.log('[Sidebar] No filters or sorts active, showing alert');
+      setShowNoFiltersAlert(true);
       return;
     }
 
-    const name = prompt('Enter a name for this view:');
-    if (!name || name.trim() === '') {
-      return;
-    }
+    logger.log('[Sidebar] Opening create dialog');
+    setShowCreateDialog(true);
+  };
 
+  const handleConfirmCreate = (name: string) => {
     logger.log('[Sidebar] Creating preset:', name);
-    createPreset(name.trim());
+    createPreset(name);
+    setShowCreateDialog(false);
+  };
+
+  const handleCancelCreate = () => {
+    logger.log('[Sidebar] Canceling preset creation');
+    setShowCreateDialog(false);
   };
 
   const handleDeletePreset = (presetId: string) => {
@@ -183,6 +199,24 @@ export default function Sidebar() {
           <span className="text-sm">Save Current View</span>
         </button>
       </div>
+
+      {/* Create preset dialog */}
+      <InputDialog
+        isOpen={showCreateDialog}
+        title="Save Current View"
+        message="Enter a name for this view:"
+        placeholder="My Custom View"
+        onConfirm={handleConfirmCreate}
+        onCancel={handleCancelCreate}
+      />
+
+      {/* No filters alert dialog */}
+      <AlertDialog
+        isOpen={showNoFiltersAlert}
+        title="No Filters or Sorts Applied"
+        message="Please apply some filters or sorts first before saving a view."
+        onClose={() => setShowNoFiltersAlert(false)}
+      />
     </aside>
   );
 }

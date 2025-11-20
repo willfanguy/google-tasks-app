@@ -47,6 +47,15 @@ interface TaskState {
   syncAll: () => Promise<void>;
   getTaskById: (listId: string, taskId: string) => Task | undefined;
   getTasksByList: (listId: string) => Task[];
+  findTaskListId: (taskId: string) => string | undefined;
+  bulkUpdateTasks: (
+    taskIds: string[],
+    updates: {
+      dueDate?: string | null;
+      listId?: string;
+      labelIds?: string[];
+    }
+  ) => Promise<void>;
 }
 
 // Helper to convert Google API response to our Task type
@@ -442,7 +451,11 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         return;
       }
 
-      // Optimistic update
+      // Separate local metadata from API fields
+      const { labels, ...apiUpdates } = updates;
+      const hasApiUpdates = Object.keys(apiUpdates).length > 0;
+
+      // Optimistic update (includes both API fields and local metadata)
       set((state) => {
         const currentTasks = state.tasks.get(listId) || [];
         const index = currentTasks.findIndex((t) => t.id === taskId);
@@ -456,17 +469,40 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         return { tasks: newTasks };
       });
 
+      // If there are no API updates, we're done (local metadata only)
+      if (!hasApiUpdates) {
+        logger.log('[TaskStore] Local metadata update only, skipping API call');
+        return;
+      }
+
       try {
+        // Google Tasks API needs the complete task object, not just the changed fields
+        // Merge the API updates with the original task
+        const completeTaskUpdate = {
+          title: originalTask.title,
+          notes: originalTask.notes,
+          status: originalTask.status,
+          due: originalTask.due,
+          completed: originalTask.completed,
+          parent: originalTask.parent,
+          position: originalTask.position,
+          links: originalTask.links,
+          // Apply the updates on top
+          ...apiUpdates
+        };
+
+        // Send complete task to Google Tasks API
         const response = await window.electronAPI.updateTask(
           listId,
           taskId,
-          updates
+          completeTaskUpdate
         );
         logger.log('[TaskStore] Task updated:', response);
 
         if (response.success && response.data) {
           const updatedTask = convertGoogleTaskToTask(response.data);
-          updatedTask.labels = updates.labels || originalTask.labels; // Preserve local metadata
+          // Preserve local metadata from the updates or original task
+          updatedTask.labels = labels || originalTask.labels;
 
           // Update with server response
           set((state) => {
@@ -698,6 +734,103 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
      */
     getTasksByList: (listId: string) => {
       return get().tasks.get(listId) || [];
+    },
+
+    /**
+     * Finds which list a task belongs to
+     */
+    findTaskListId: (taskId: string) => {
+      const allTasks = get().tasks;
+      for (const [listId, tasks] of allTasks.entries()) {
+        if (tasks.some((t) => t.id === taskId)) {
+          return listId;
+        }
+      }
+      return undefined;
+    },
+
+    /**
+     * Bulk updates multiple tasks
+     * Handles due dates, labels, and moving between lists
+     */
+    bulkUpdateTasks: async (
+      taskIds: string[],
+      updates: {
+        dueDate?: string | null;
+        listId?: string;
+        labelIds?: string[];
+      }
+    ) => {
+      logger.log(`[TaskStore] Bulk updating ${taskIds.length} tasks:`, updates);
+
+      const promises: Promise<void>[] = [];
+
+      for (const taskId of taskIds) {
+        // Find which list this task is currently in
+        const currentListId = get().findTaskListId(taskId);
+        if (!currentListId) {
+          logger.error(`[TaskStore] Task ${taskId} not found in any list`);
+          continue;
+        }
+
+        const task = get().getTaskById(currentListId, taskId);
+        if (!task) {
+          continue;
+        }
+
+        // Build the update object
+        const taskUpdates: Partial<Task> = {};
+
+        // Update due date if specified
+        if (updates.dueDate !== undefined) {
+          taskUpdates.due = updates.dueDate || undefined;
+        }
+
+        // Update labels if specified - MERGE with existing labels
+        let mergedLabels: string[] | undefined;
+        if (updates.labelIds && updates.labelIds.length > 0) {
+          // Import labelStore to update both stores
+          const { useLabelStore } = await import('./labelStore');
+          const currentLabels = useLabelStore.getState().getTaskLabels(taskId);
+          // Merge new labels with existing ones (deduplicate)
+          mergedLabels = [...new Set([...currentLabels, ...updates.labelIds])];
+          taskUpdates.labels = mergedLabels;
+
+          // Update labelStore immediately (it's persisted to localStorage)
+          useLabelStore.getState().setTaskLabels(taskId, mergedLabels);
+        }
+
+        // If moving to a different list
+        if (updates.listId && updates.listId !== currentListId) {
+          promises.push(
+            (async () => {
+              // Move task to new list
+              await get().moveTask(currentListId, taskId, {
+                destinationList: updates.listId,
+              });
+
+              // Then update the task with other changes if any
+              if (Object.keys(taskUpdates).length > 0) {
+                // Wait a bit for the move to complete
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await get().updateTask(updates.listId!, taskId, taskUpdates);
+              }
+            })()
+          );
+        } else if (Object.keys(taskUpdates).length > 0) {
+          // Update in current list - updateTask handles API vs local metadata separation
+          promises.push(get().updateTask(currentListId, taskId, taskUpdates));
+        }
+      }
+
+      try {
+        await Promise.all(promises);
+        logger.log('[TaskStore] Bulk update completed');
+        useUIStore.getState().addNotification('success', `Updated ${taskIds.length} tasks`);
+      } catch (error) {
+        logger.error('[TaskStore] Bulk update error:', error);
+        useUIStore.getState().addNotification('error', 'Failed to update some tasks');
+      }
     },
   })
 );
