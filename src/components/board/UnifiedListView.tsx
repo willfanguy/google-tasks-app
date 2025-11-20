@@ -104,24 +104,14 @@ export default function UnifiedListView() {
         {/* Task list */}
         <div className="space-y-2">
           {flatTasks.map(task => (
-            <div key={task.id} className="flex items-start gap-3">
-              {/* List indicator */}
-              <div className="flex-shrink-0 w-32 pt-3">
-                <span className="text-xs text-muted-foreground truncate block">
-                  {task.listTitle || 'Unknown List'}
-                </span>
-              </div>
-
-              {/* Task card */}
-              <div className="flex-1">
-                <TaskCard
-                  task={task}
-                  listId={task.listId || ''}
-                  depth={task.depth || 0}
-                  subtaskCount={countDirectSubtasks(task)}
-                />
-              </div>
-            </div>
+            <TaskCard
+              key={task.id}
+              task={task}
+              listId={task.listId || ''}
+              depth={task.depth || 0}
+              subtaskCount={countDirectSubtasks(task)}
+              showListName={true}
+            />
           ))}
         </div>
       </div>

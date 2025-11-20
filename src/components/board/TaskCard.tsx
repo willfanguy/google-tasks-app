@@ -45,6 +45,7 @@ interface TaskCardProps {
   listId: string;
   depth?: number;
   subtaskCount?: number;
+  showListName?: boolean; // Show list name badge for unified view
 }
 
 export default function TaskCard({
@@ -52,6 +53,7 @@ export default function TaskCard({
   listId,
   depth = 0,
   subtaskCount = 0,
+  showListName = false,
 }: TaskCardProps) {
   const { toggleTaskStatus } = useTaskStore();
   const { openTaskDetail, toggleTaskCollapse, isTaskCollapsed } = useUIStore();
@@ -288,8 +290,15 @@ export default function TaskCard({
       </div>
 
       {/* Metadata row */}
-      {(hasDueDate || hasNotes || hasPriority) && (
+      {(hasDueDate || hasNotes || hasPriority || showListName) && (
         <div className="mt-2 flex items-center gap-3 text-xs">
+          {/* List name badge (for unified view) */}
+          {showListName && task.listTitle && (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
+              <span>{task.listTitle}</span>
+            </div>
+          )}
+
           {/* Priority */}
           {hasPriority && (
             <div
