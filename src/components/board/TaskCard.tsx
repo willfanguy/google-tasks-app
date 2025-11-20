@@ -46,6 +46,7 @@ interface TaskCardProps {
   depth?: number;
   subtaskCount?: number;
   showListName?: boolean; // Show list name badge for unified view
+  inlineLabels?: boolean; // Show labels inline with metadata (more compact)
 }
 
 export default function TaskCard({
@@ -54,6 +55,7 @@ export default function TaskCard({
   depth = 0,
   subtaskCount = 0,
   showListName = false,
+  inlineLabels = false,
 }: TaskCardProps) {
   const { toggleTaskStatus } = useTaskStore();
   const { openTaskDetail, toggleTaskCollapse, isTaskCollapsed } = useUIStore();
@@ -290,14 +292,24 @@ export default function TaskCard({
       </div>
 
       {/* Metadata row */}
-      {(hasDueDate || hasNotes || hasPriority || showListName) && (
-        <div className="mt-2 flex items-center gap-3 text-xs">
+      {(hasDueDate || hasNotes || hasPriority || showListName || (inlineLabels && taskLabels.length > 0)) && (
+        <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
           {/* List name badge (for unified view) */}
           {showListName && task.listTitle && (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
               <span>{task.listTitle}</span>
             </div>
           )}
+
+          {/* Inline labels (for unified view) */}
+          {inlineLabels && taskLabels.length > 0 && taskLabels.map((label) => (
+            <span
+              key={label!.id}
+              className={`px-2 py-0.5 text-xs rounded-full font-medium ${getColorClasses(label!.color).bg} ${getColorClasses(label!.color).text}`}
+            >
+              {label!.name}
+            </span>
+          ))}
 
           {/* Priority */}
           {hasPriority && (
@@ -335,8 +347,8 @@ export default function TaskCard({
         </div>
       )}
 
-      {/* Labels */}
-      {taskLabels.length > 0 && (
+      {/* Labels (separate row - only when not inline) */}
+      {!inlineLabels && taskLabels.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {taskLabels.map((label) => (
             <span

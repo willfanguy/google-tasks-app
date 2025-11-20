@@ -111,6 +111,7 @@ export default function UnifiedListView() {
               depth={task.depth || 0}
               subtaskCount={countDirectSubtasks(task)}
               showListName={true}
+              inlineLabels={true}
             />
           ))}
         </div>
