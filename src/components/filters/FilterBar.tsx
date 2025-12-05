@@ -76,13 +76,13 @@ export default function FilterBar() {
   return (
     <div className="h-14 border-b border-border bg-card flex items-center gap-3 px-4 flex-shrink-0">
       {/* View mode toggle */}
-      <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+      <div className="flex items-center gap-1 bg-accent rounded-lg p-1">
         <button
           onClick={() => setViewMode('board')}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-2 rounded transition-colors ${
             viewMode === 'board'
-              ? 'bg-accent text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-accent-foreground hover:text-accent-foreground/80'
           }`}
           title="Board View"
         >
@@ -90,10 +90,10 @@ export default function FilterBar() {
         </button>
         <button
           onClick={() => setViewMode('list')}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-2 rounded transition-colors ${
             viewMode === 'list'
-              ? 'bg-accent text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-accent-foreground hover:text-accent-foreground/80'
           }`}
           title="List View"
         >
@@ -278,7 +278,7 @@ export default function FilterBar() {
       {filtersActive && (
         <button
           onClick={handleClearFilters}
-          className="flex items-center gap-2 px-3 py-2 text-sm bg-accent hover:bg-accent/80 rounded-lg transition-colors text-foreground"
+          className="flex items-center gap-2 px-3 py-2 text-sm bg-accent hover:bg-accent/80 rounded-lg transition-colors text-accent-foreground"
         >
           <X className="w-4 h-4" />
           <span>Clear</span>

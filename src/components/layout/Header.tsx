@@ -55,35 +55,6 @@ export default function Header() {
         <h1 className="text-xl font-bold text-foreground">Google Tasks</h1>
       </div>
 
-      {/* Center: View mode switcher */}
-      <div
-        className="flex items-center gap-1 bg-accent/50 rounded-lg p-1"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        <button
-          onClick={() => setViewMode('board')}
-          className={`p-2 rounded transition-colors ${
-            viewMode === 'board'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          title="Board view"
-        >
-          <LayoutGrid className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setViewMode('list')}
-          className={`p-2 rounded transition-colors ${
-            viewMode === 'list'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          title="List view"
-        >
-          <List className="w-5 h-5" />
-        </button>
-      </div>
-
       {/* Right: User info and actions */}
       <div
         className="flex items-center gap-4"

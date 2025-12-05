@@ -16,19 +16,19 @@ export const PRIORITY_LEVELS: Record<Priority, PriorityConfig> = {
   high: {
     value: 'high',
     label: 'High',
-    color: '#ef4444', // red
+    color: '#a30000', // Inferno
     order: 1,
   },
   medium: {
     value: 'medium',
     label: 'Medium',
-    color: '#f59e0b', // amber
+    color: '#ff7700', // Harvest Orange
     order: 2,
   },
   low: {
     value: 'low',
     label: 'Low',
-    color: '#3b82f6', // blue
+    color: '#003459', // Deep Space Blue
     order: 3,
   },
 };

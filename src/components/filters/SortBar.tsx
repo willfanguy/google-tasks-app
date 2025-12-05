@@ -121,7 +121,7 @@ export default function SortBar() {
       {sortsActive && (
         <>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground bg-accent px-2 py-1 rounded-full">
+            <span className="text-xs font-semibold text-accent-foreground bg-accent px-2 py-1 rounded-full">
               ①
             </span>
             <span className="text-sm text-muted-foreground font-medium">Sort by:</span>
@@ -147,7 +147,7 @@ export default function SortBar() {
           {/* Secondary sort - only show if primary is set */}
           {primarySort && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground bg-accent px-2 py-1 rounded-full">
+              <span className="text-xs font-semibold text-accent-foreground bg-accent px-2 py-1 rounded-full">
                 ②
               </span>
               <span className="text-sm text-muted-foreground font-medium">then by:</span>
@@ -174,7 +174,7 @@ export default function SortBar() {
           {/* Tertiary sort - only show if secondary is set */}
           {secondarySort && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground bg-accent px-2 py-1 rounded-full">
+              <span className="text-xs font-semibold text-accent-foreground bg-accent px-2 py-1 rounded-full">
                 ③
               </span>
               <span className="text-sm text-muted-foreground font-medium">then by:</span>
@@ -196,7 +196,7 @@ export default function SortBar() {
           {/* Clear sorts button */}
           <button
             onClick={handleClearSorts}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-accent hover:bg-accent/80 rounded-lg transition-colors text-foreground ml-auto"
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-accent hover:bg-accent/80 rounded-lg transition-colors text-accent-foreground ml-auto"
             title="Clear all sorts"
           >
             <X className="w-4 h-4" />
