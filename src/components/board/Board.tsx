@@ -22,6 +22,7 @@ export default function Board() {
   const { taskLists, tasks, loading, fetchTaskLists, moveTask, getTaskById } = useTaskStore();
   const { getBoardLayout, reorderLists, addListToBoard, removeListFromBoard } = useBoardStore();
   const { listSortMode, setListSortMode } = useUIStore();
+  const addNotification = useUIStore((s) => s.addNotification);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
 
@@ -163,6 +164,7 @@ export default function Board() {
         }
       } catch (error) {
         logger.error('[Board] Failed to move task:', error);
+        addNotification('error', 'Failed to move task');
       }
     }
   };

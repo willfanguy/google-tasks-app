@@ -15,6 +15,7 @@ import QuickAddTask from './components/task/QuickAddTask';
 import FloatingAddButton from './components/task/FloatingAddButton';
 import LabelManager from './components/labels/LabelManager';
 import Settings from './components/settings/Settings';
+import Notifications from './components/common/Notifications';
 import { logger } from './utils/logger';
 
 function App() {
@@ -95,6 +96,9 @@ function App() {
         {viewMode === 'board' && <Board />}
         {viewMode === 'list' && <UnifiedListView />}
       </Layout>
+
+      {/* Toast notifications */}
+      <Notifications />
 
       {/* Modals */}
       <TaskDetail />

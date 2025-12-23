@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronDown,
   Flag,
-  CheckCheck,
   Square,
 } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";

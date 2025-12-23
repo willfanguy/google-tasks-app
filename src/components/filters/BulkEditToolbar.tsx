@@ -3,11 +3,13 @@
  * Toolbar for bulk editing selected tasks (due dates, labels, lists)
  */
 
-import { useState } from "react";
-import { X, Calendar, Tag, List, Check } from "lucide-react";
-import { useSelectionStore } from "../../stores/selectionStore";
-import { useTaskStore } from "../../stores/taskStore";
-import { useLabelStore } from "../../stores/labelStore";
+import { useState } from 'react';
+import { X, Calendar, Tag, List, Check } from 'lucide-react';
+import { useSelectionStore } from '../../stores/selectionStore';
+import { useTaskStore } from '../../stores/taskStore';
+import { useLabelStore } from '../../stores/labelStore';
+import { useUIStore } from '../../stores/uiStore';
+import { logger } from '../../utils/logger';
 
 export default function BulkEditToolbar() {
   const {
@@ -17,9 +19,10 @@ export default function BulkEditToolbar() {
   } = useSelectionStore();
   const { taskLists, bulkUpdateTasks } = useTaskStore();
   const { labels } = useLabelStore();
+  const addNotification = useUIStore((s) => s.addNotification);
 
-  const [dueDate, setDueDate] = useState<string>("");
-  const [selectedListId, setSelectedListId] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>('');
+  const [selectedListId, setSelectedListId] = useState<string>('');
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
@@ -55,26 +58,27 @@ export default function BulkEditToolbar() {
       await bulkUpdateTasks(selectedTaskIdsArray, updates);
 
       // Clear the form and selection
-      setDueDate("");
-      setSelectedListId("");
+      setDueDate('');
+      setSelectedListId('');
       setSelectedLabelIds([]);
       clearSelection();
     } catch (error) {
-      console.error("Failed to apply bulk updates:", error);
+      logger.error('[BulkEditToolbar] Failed to apply bulk updates:', error);
+      addNotification('error', 'Failed to apply bulk updates');
     } finally {
       setIsApplying(false);
     }
   };
 
   const handleClear = () => {
-    setDueDate("");
-    setSelectedListId("");
+    setDueDate('');
+    setSelectedListId('');
     setSelectedLabelIds([]);
     clearSelection();
   };
 
   const handleClearDueDate = () => {
-    setDueDate("");
+    setDueDate('');
   };
 
   const toggleLabel = (labelId: string) => {
@@ -86,7 +90,7 @@ export default function BulkEditToolbar() {
   };
 
   const hasChanges =
-    dueDate !== "" || selectedListId !== "" || selectedLabelIds.length > 0;
+    dueDate !== '' || selectedListId !== '' || selectedLabelIds.length > 0;
 
   return (
     <div className="border-b bg-muted/30 px-4 py-3">
@@ -150,11 +154,11 @@ export default function BulkEditToolbar() {
               <option value="">
                 {selectedLabelIds.length > 0
                   ? `${selectedLabelIds.length} labels selected`
-                  : "Add labels..."}
+                  : 'Add labels...'}
               </option>
               {labels.map((label) => (
                 <option key={label.id} value={label.id}>
-                  {selectedLabelIds.includes(label.id) ? "✓ " : ""}
+                  {selectedLabelIds.includes(label.id) ? '✓ ' : ''}
                   {label.name}
                 </option>
               ))}
@@ -168,7 +172,7 @@ export default function BulkEditToolbar() {
             disabled={!hasChanges || isApplying}
             className="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isApplying ? "Applying..." : "Apply"}
+            {isApplying ? 'Applying...' : 'Apply'}
           </button>
           <button
             onClick={handleClear}

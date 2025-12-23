@@ -511,8 +511,10 @@ export const useFilterStore = create<FilterState>()(
             }
 
             case 'label-asc': {
-              const hasLabelsA = a.labels && a.labels.length > 0;
-              const hasLabelsB = b.labels && b.labels.length > 0;
+              const labelsA = a.labels;
+              const labelsB = b.labels;
+              const hasLabelsA = !!labelsA && labelsA.length > 0;
+              const hasLabelsB = !!labelsB && labelsB.length > 0;
 
               // If both have no labels, they're equal - proceed to secondary sort
               if (!hasLabelsA && !hasLabelsB) return 0;
@@ -522,8 +524,8 @@ export const useFilterStore = create<FilterState>()(
               if (!hasLabelsB) return -1;
 
               // Get the first label for each task
-              const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
-              const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+              const labelA = useLabelStore.getState().getLabelById(labelsA![0]);
+              const labelB = useLabelStore.getState().getLabelById(labelsB![0]);
 
               // If both labels don't exist, they're equal - proceed to secondary sort
               if (!labelA && !labelB) return 0;
@@ -537,8 +539,10 @@ export const useFilterStore = create<FilterState>()(
             }
 
             case 'label-desc': {
-              const hasLabelsA = a.labels && a.labels.length > 0;
-              const hasLabelsB = b.labels && b.labels.length > 0;
+              const labelsA = a.labels;
+              const labelsB = b.labels;
+              const hasLabelsA = !!labelsA && labelsA.length > 0;
+              const hasLabelsB = !!labelsB && labelsB.length > 0;
 
               // If both have no labels, they're equal - proceed to secondary sort
               if (!hasLabelsA && !hasLabelsB) return 0;
@@ -548,8 +552,8 @@ export const useFilterStore = create<FilterState>()(
               if (!hasLabelsB) return -1;
 
               // Get the first label for each task
-              const labelA = useLabelStore.getState().getLabelById(a.labels[0]);
-              const labelB = useLabelStore.getState().getLabelById(b.labels[0]);
+              const labelA = useLabelStore.getState().getLabelById(labelsA![0]);
+              const labelB = useLabelStore.getState().getLabelById(labelsB![0]);
 
               // If both labels don't exist, they're equal - proceed to secondary sort
               if (!labelA && !labelB) return 0;

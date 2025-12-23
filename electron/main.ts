@@ -4,6 +4,7 @@ dotenv.config();
 
 // Now import everything else
 import { app, BrowserWindow } from 'electron';
+import path from 'path';
 import { createMainWindow } from './utils/window';
 import { setupAuthHandlers } from './ipc/auth';
 import { setupStorageHandlers } from './ipc/storage';
@@ -20,9 +21,16 @@ let mainWindow: BrowserWindow | null = null;
 const createWindow = (): void => {
   mainWindow = createMainWindow();
 
-  // Load the dev server
-  mainWindow.loadURL('http://localhost:5173');
-  mainWindow.webContents.openDevTools();
+  const isDev = process.env.NODE_ENV === 'development';
+
+  if (isDev) {
+    // Load the Vite dev server
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    // Load the built renderer (Vite outputs to dist/)
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show();

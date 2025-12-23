@@ -105,7 +105,7 @@ const DEFAULT_MODALS: ModalState = {
 };
 
 // Track notification timeouts to prevent memory leaks
-const notificationTimeouts = new Map<string, NodeJS.Timeout>();
+const notificationTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
 export const useUIStore = create<UIState>()(
   persist(

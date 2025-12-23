@@ -60,6 +60,32 @@ export default function Header() {
         className="flex items-center gap-4"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {/* View mode toggle */}
+        <div className="flex items-center rounded-lg border border-border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setViewMode('board')}
+            className={`px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+              viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+            }`}
+            title="Board view"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span className="hidden sm:inline">Board</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+              viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+            }`}
+            title="List view"
+          >
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">List</span>
+          </button>
+        </div>
+
         {/* User email */}
         {user.email && (
           <div className="text-sm text-muted-foreground">

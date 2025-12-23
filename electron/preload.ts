@@ -1,89 +1,62 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  AuthResponse,
+  AuthStatusResponse,
+  CheckAuthResponse,
+  CreateTaskListResponse,
+  CreateTaskResponse,
+  DeleteStoreResponse,
+  DeleteTaskListResponse,
+  DeleteTaskResponse,
+  GetStoreResponse,
+  GetTaskListsResponse,
+  GetTasksResponse,
+  MoveTaskData,
+  MoveTaskResponse,
+  SetStoreResponse,
+  TaskData,
+  UpdateTaskListResponse,
+  UpdateTaskResponse,
+} from '../src/types/ipc';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 const api = {
   // Auth
-  googleAuth: () => ipcRenderer.invoke('google-auth'),
-  checkAuth: () => ipcRenderer.invoke('check-auth'),
-  logout: () => ipcRenderer.invoke('logout'),
-  getAuthStatus: () => ipcRenderer.invoke('get-auth-status'),
+  googleAuth: (): Promise<AuthResponse> => ipcRenderer.invoke('google-auth'),
+  checkAuth: (): Promise<CheckAuthResponse> => ipcRenderer.invoke('check-auth'),
+  logout: (): Promise<AuthResponse> => ipcRenderer.invoke('logout'),
+  getAuthStatus: (): Promise<AuthStatusResponse> => ipcRenderer.invoke('get-auth-status'),
 
   // Tasks
-  getTasks: (taskListId: string) => ipcRenderer.invoke('get-tasks', taskListId),
-  getTaskLists: () => ipcRenderer.invoke('get-task-lists'),
-  createTask: (taskListId: string, task: unknown) => ipcRenderer.invoke('create-task', taskListId, task),
-  updateTask: (taskListId: string, taskId: string, task: unknown) =>
+  getTasks: (taskListId: string): Promise<GetTasksResponse> =>
+    ipcRenderer.invoke('get-tasks', taskListId),
+  getTaskLists: (): Promise<GetTaskListsResponse> => ipcRenderer.invoke('get-task-lists'),
+  createTask: (taskListId: string, task: TaskData): Promise<CreateTaskResponse> =>
+    ipcRenderer.invoke('create-task', taskListId, task),
+  updateTask: (taskListId: string, taskId: string, task: TaskData): Promise<UpdateTaskResponse> =>
     ipcRenderer.invoke('update-task', taskListId, taskId, task),
-  deleteTask: (taskListId: string, taskId: string) =>
+  deleteTask: (taskListId: string, taskId: string): Promise<DeleteTaskResponse> =>
     ipcRenderer.invoke('delete-task', taskListId, taskId),
-  moveTask: (taskListId: string, taskId: string, data: unknown) =>
+  moveTask: (taskListId: string, taskId: string, data: MoveTaskData): Promise<MoveTaskResponse> =>
     ipcRenderer.invoke('move-task', taskListId, taskId, data),
 
   // Task Lists
-  createTaskList: (title: string) => ipcRenderer.invoke('create-task-list', title),
-  updateTaskList: (taskListId: string, title: string) =>
+  createTaskList: (title: string): Promise<CreateTaskListResponse> =>
+    ipcRenderer.invoke('create-task-list', title),
+  updateTaskList: (taskListId: string, title: string): Promise<UpdateTaskListResponse> =>
     ipcRenderer.invoke('update-task-list', taskListId, title),
-  deleteTaskList: (taskListId: string) => ipcRenderer.invoke('delete-task-list', taskListId),
+  deleteTaskList: (taskListId: string): Promise<DeleteTaskListResponse> =>
+    ipcRenderer.invoke('delete-task-list', taskListId),
 
   // Storage
-  getStore: (key: string) => ipcRenderer.invoke('get-store', key),
-  setStore: (key: string, value: unknown) => ipcRenderer.invoke('set-store', key, value),
-  deleteStore: (key: string) => ipcRenderer.invoke('delete-store', key),
+  getStore: <T = unknown>(key: string): Promise<GetStoreResponse<T>> =>
+    ipcRenderer.invoke('get-store', key),
+  setStore: (key: string, value: unknown): Promise<SetStoreResponse> =>
+    ipcRenderer.invoke('set-store', key, value),
+  deleteStore: (key: string): Promise<DeleteStoreResponse> => ipcRenderer.invoke('delete-store', key),
 };
 
 // Expose the API in both electronAPI and electron namespaces
 contextBridge.exposeInMainWorld('electronAPI', api);
 contextBridge.exposeInMainWorld('electron', api);
-
-// TypeScript type definitions for the exposed API
-// Note: These match the types defined in src/types/electron.d.ts
-export interface ElectronAPI {
-  // Auth methods
-  googleAuth: () => Promise<{
-    success: boolean;
-    authenticated: boolean;
-    message?: string;
-    error?: string;
-  }>;
-  checkAuth: () => Promise<{
-    authenticated: boolean;
-    error?: string;
-  }>;
-  logout: () => Promise<{
-    success: boolean;
-    message?: string;
-    error?: string;
-  }>;
-  getAuthStatus: () => Promise<{
-    authenticated: boolean;
-    email?: string;
-    expiresAt?: number;
-    error?: string;
-  }>;
-
-  // Task methods
-  getTasks: (taskListId: string) => Promise<unknown>;
-  getTaskLists: () => Promise<unknown>;
-  createTask: (taskListId: string, task: unknown) => Promise<unknown>;
-  updateTask: (taskListId: string, taskId: string, task: unknown) => Promise<unknown>;
-  deleteTask: (taskListId: string, taskId: string) => Promise<unknown>;
-  moveTask: (taskListId: string, taskId: string, data: unknown) => Promise<unknown>;
-
-  // Task List methods
-  createTaskList: (title: string) => Promise<unknown>;
-  updateTaskList: (taskListId: string, title: string) => Promise<unknown>;
-  deleteTaskList: (taskListId: string) => Promise<unknown>;
-
-  // Storage methods
-  getStore: (key: string) => Promise<unknown>;
-  setStore: (key: string, value: unknown) => Promise<void>;
-  deleteStore: (key: string) => Promise<void>;
-}
-
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI;
-    electron: ElectronAPI; // Add alias for convenience
-  }
-}

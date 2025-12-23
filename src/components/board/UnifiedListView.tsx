@@ -4,13 +4,14 @@
  * Tasks are grouped by status/filter but not by list
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import TaskCard from './TaskCard';
+import { Task } from '../../types/task';
 import {
   organizeTasksHierarchically,
   flattenTasksWithDepth,
@@ -19,11 +20,14 @@ import {
 import { logger } from '../../utils/logger';
 
 export default function UnifiedListView() {
-  const { authenticated } = useAuthStore();
-  const { taskLists, tasks, fetchTaskLists, fetchTasks } = useTaskStore();
-  const { getFilteredAndSortedTasks } = useFilterStore();
-  const { getTaskLabels } = useLabelStore();
-  const { collapsedTasks } = useUIStore();
+  const authenticated = useAuthStore((s) => s.authenticated);
+  const taskLists = useTaskStore((s) => s.taskLists);
+  const tasks = useTaskStore((s) => s.tasks);
+  const fetchTaskLists = useTaskStore((s) => s.fetchTaskLists);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const getFilteredAndSortedTasks = useFilterStore((s) => s.getFilteredAndSortedTasks);
+  const getTaskLabels = useLabelStore((s) => s.getTaskLabels);
+  const collapsedTasks = useUIStore((s) => s.collapsedTasks);
 
   // Fetch task lists on mount
   useEffect(() => {
@@ -43,30 +47,26 @@ export default function UnifiedListView() {
     }
   }, [taskLists, fetchTasks]);
 
-  // Combine all tasks from all lists
-  const allTasks = Array.from(tasks.values()).flat();
+  const listTitlesById = useMemo(() => {
+    return new Map(taskLists.map((l) => [l.id, l.title] as const));
+  }, [taskLists]);
 
-  // Enrich with labels and list info
-  const tasksWithMetadata = allTasks.map(task => {
-    // Find which list this task belongs to
-    let listId = '';
-    let listTitle = '';
-    for (const [lid, listTasks] of tasks.entries()) {
-      if (listTasks.find(t => t.id === task.id)) {
-        listId = lid;
-        const list = taskLists.find(l => l.id === lid);
-        listTitle = list?.title || 'Unknown List';
-        break;
+  // Enrich with labels + list metadata in one pass (avoids O(n^2) scans)
+  const tasksWithMetadata = useMemo(() => {
+    const enriched: Task[] = [];
+    for (const [listId, listTasks] of tasks.entries()) {
+      const listTitle = listTitlesById.get(listId) || 'Unknown List';
+      for (const task of listTasks) {
+        enriched.push({
+          ...task,
+          labels: getTaskLabels(task.id),
+          listId,
+          listTitle,
+        });
       }
     }
-
-    return {
-      ...task,
-      labels: getTaskLabels(task.id),
-      listId,
-      listTitle,
-    };
-  });
+    return enriched;
+  }, [tasks, listTitlesById, getTaskLabels]);
 
   // Apply filters and sorting
   const filteredTasks = getFilteredAndSortedTasks(tasksWithMetadata);
