@@ -25,9 +25,18 @@ export default function UnifiedListView() {
   const tasks = useTaskStore((s) => s.tasks);
   const fetchTaskLists = useTaskStore((s) => s.fetchTaskLists);
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  // IMPORTANT: subscribe to filter state so this view re-renders when filters change
+  // (Selecting only the function would not trigger a re-render on status changes.)
+  const activeFilters = useFilterStore((s) => s.activeFilters);
+  const sortOptions = useFilterStore((s) => s.sortOptions);
   const getFilteredAndSortedTasks = useFilterStore((s) => s.getFilteredAndSortedTasks);
   const getTaskLabels = useLabelStore((s) => s.getTaskLabels);
   const collapsedTasks = useUIStore((s) => s.collapsedTasks);
+
+  // Intentionally "use" these values to keep the subscriptions active even if
+  // the current render logic doesn't directly reference them.
+  void activeFilters;
+  void sortOptions;
 
   // Fetch task lists on mount
   useEffect(() => {
@@ -69,6 +78,8 @@ export default function UnifiedListView() {
   }, [tasks, listTitlesById, getTaskLabels]);
 
   // Apply filters and sorting
+  // Note: we intentionally compute this on render so changes to filters/sorts
+  // always reflect immediately in list view.
   const filteredTasks = getFilteredAndSortedTasks(tasksWithMetadata);
 
   // Organize tasks hierarchically
