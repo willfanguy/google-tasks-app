@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { Task, TaskList } from '../types/task';
 import { GoogleTask, GoogleTaskList } from '../types/api';
 import { useUIStore } from './uiStore';
+import { useLabelStore } from './labelStore';
 import { logger } from '../utils/logger';
 
 interface TaskState {
@@ -39,7 +40,7 @@ interface TaskState {
     listId: string,
     taskId: string,
     data: { parent?: string; previous?: string; destinationList?: string }
-  ) => Promise<void>;
+  ) => Promise<{ destinationListId: string; destinationTaskId: string }>;
   toggleTaskStatus: (listId: string, taskId: string) => Promise<void>;
 
   // Utility Actions
@@ -617,22 +618,43 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             throw new Error('Task not found');
           }
 
+          // Preserve local metadata (labels/priority) across the new task ID
+          const existingLabels = useLabelStore.getState().getTaskLabels(taskId);
+          const existingPriority = useLabelStore.getState().getTaskPriority(taskId);
+
           // Create in destination list
           const newTask = await get().createTask(data.destinationList, {
             title: task.title,
             notes: task.notes,
             status: task.status,
             due: task.due,
+            labels: existingLabels,
           });
 
           // Delete from source list
           if (newTask) {
+            // Migrate local metadata to the new task ID, then clear old
+            if (existingLabels.length > 0) {
+              useLabelStore.getState().setTaskLabels(newTask.id, existingLabels);
+            }
+            if (existingPriority) {
+              useLabelStore.getState().setTaskPriority(newTask.id, existingPriority);
+            }
+            useLabelStore.getState().clearTaskLabels(taskId);
+            useLabelStore.getState().clearTaskPriority(taskId);
+
             await get().deleteTask(listId, taskId);
+          }
+
+          if (!newTask) {
+            throw new Error('Failed to move task');
           }
 
           // Refresh both lists
           await get().fetchTasks(listId, true);
           await get().fetchTasks(data.destinationList, true);
+
+          return { destinationListId: data.destinationList, destinationTaskId: newTask.id };
         } else {
           // Moving within same list - use API moveTask
           const response = await window.electronAPI.moveTask(listId, taskId, data);
@@ -644,6 +666,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
 
           // Refresh the list
           await get().fetchTasks(listId, true);
+          return { destinationListId: listId, destinationTaskId: taskId };
         }
       } catch (error) {
         logger.error('[TaskStore] Move task error:', error);
@@ -651,6 +674,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
           error:
             error instanceof Error ? error.message : 'Failed to move task',
         });
+        throw error;
       }
     },
 
@@ -778,6 +802,8 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
           continue;
         }
 
+        const willMove = !!updates.listId && updates.listId !== currentListId;
+
         // Build the update object
         const taskUpdates: Partial<Task> = {};
 
@@ -789,23 +815,24 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         // Update labels if specified - MERGE with existing labels
         let mergedLabels: string[] | undefined;
         if (updates.labelIds && updates.labelIds.length > 0) {
-          // Import labelStore to update both stores
-          const { useLabelStore } = await import('./labelStore');
           const currentLabels = useLabelStore.getState().getTaskLabels(taskId);
           // Merge new labels with existing ones (deduplicate)
           mergedLabels = [...new Set([...currentLabels, ...updates.labelIds])];
           taskUpdates.labels = mergedLabels;
 
-          // Update labelStore immediately (it's persisted to localStorage)
-          useLabelStore.getState().setTaskLabels(taskId, mergedLabels);
+          // If not moving lists, update labelStore immediately (it's persisted to localStorage).
+          // If moving lists, the task ID changes; we'll apply labels to the NEW ID after move.
+          if (!willMove) {
+            useLabelStore.getState().setTaskLabels(taskId, mergedLabels);
+          }
         }
 
         // If moving to a different list
-        if (updates.listId && updates.listId !== currentListId) {
+        if (willMove) {
           promises.push(
             (async () => {
               // Move task to new list
-              await get().moveTask(currentListId, taskId, {
+              const moved = await get().moveTask(currentListId, taskId, {
                 destinationList: updates.listId,
               });
 
@@ -813,7 +840,12 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
               if (Object.keys(taskUpdates).length > 0) {
                 // Wait a bit for the move to complete
                 await new Promise(resolve => setTimeout(resolve, 100));
-                await get().updateTask(updates.listId!, taskId, taskUpdates);
+                await get().updateTask(moved.destinationListId, moved.destinationTaskId, taskUpdates);
+              }
+
+              // Re-apply merged labels to the new task ID (if applicable)
+              if (mergedLabels) {
+                useLabelStore.getState().setTaskLabels(moved.destinationTaskId, mergedLabels);
               }
             })()
           );

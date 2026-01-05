@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, Trash2, Check, Plus, Flag } from 'lucide-react';
+import { X, Calendar, Trash2, Check, Plus, Flag, List } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useLabelStore } from '../../stores/labelStore';
@@ -31,7 +31,8 @@ const getColorClasses = (color: string) => {
 
 export default function TaskDetail() {
   const { modals, selectedTaskId, selectedListId, closeTaskDetail, openQuickAdd } = useUIStore();
-  const { getTaskById, updateTask, deleteTask, getTasksByList } = useTaskStore();
+  const { taskLists, getTaskById, updateTask, deleteTask, getTasksByList, moveTask } = useTaskStore();
+  const addNotification = useUIStore((s) => s.addNotification);
   const { getTaskLabels, setTaskLabels, getLabelById, getSortedLabels, getTaskPriority, setTaskPriority } = useLabelStore();
   const labels = getSortedLabels();
 
@@ -107,6 +108,41 @@ export default function TaskDetail() {
     setTaskPriority(task.id, priority);
 
     handleClose();
+  };
+
+  const handleListChange = async (newListId: string) => {
+    if (!selectedListId || !selectedTaskId) return;
+    if (newListId === selectedListId) return;
+
+    // Moving across lists creates a new task ID; also subtasks won't be moved.
+    if (subtasks.length > 0) {
+      const ok = confirm(
+        'This task has subtasks. Moving it to another list will NOT move subtasks (they will remain in the current list). Continue?'
+      );
+      if (!ok) return;
+    }
+
+    try {
+      logger.log('[TaskDetail] Moving task to different list:', {
+        from: selectedListId,
+        to: newListId,
+        taskId: selectedTaskId,
+      });
+
+      const moved = await moveTask(selectedListId, selectedTaskId, { destinationList: newListId });
+
+      // Keep the modal open and point it at the new task/list
+      useUIStore.setState({
+        selectedListId: moved.destinationListId,
+        selectedTaskId: moved.destinationTaskId,
+      });
+
+      const listTitle = taskLists.find((l) => l.id === moved.destinationListId)?.title || 'list';
+      addNotification('success', `Moved task to "${listTitle}"`);
+    } catch (error) {
+      logger.error('[TaskDetail] Failed to move task:', error);
+      addNotification('error', 'Failed to move task to another list');
+    }
   };
 
   const toggleLabel = (labelId: string) => {
@@ -247,6 +283,30 @@ export default function TaskDetail() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* List */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              List
+            </label>
+            <div className="relative">
+              <List className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <select
+                value={selectedListId}
+                onChange={(e) => handleListChange(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer appearance-none"
+              >
+                {taskLists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Move this task to another list.
+            </p>
           </div>
 
           {/* Labels */}
