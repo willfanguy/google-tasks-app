@@ -36,6 +36,7 @@ export default function TaskList({ listId, list }: TaskListProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isOperating, setIsOperating] = useState(false);
 
   const tasksForList = tasks.get(listId) || [];
   const isLoading = loadingLists.has(listId);
@@ -111,9 +112,16 @@ export default function TaskList({ listId, list }: TaskListProps) {
       setShowRenameDialog(false);
       return;
     }
+    if (isOperating) return; // Prevent double-submit
+
     logger.log(`[TaskList] Renaming list ${listId} to:`, newTitle);
-    await updateTaskList(listId, newTitle.trim());
-    setShowRenameDialog(false);
+    setIsOperating(true);
+    try {
+      await updateTaskList(listId, newTitle.trim());
+    } finally {
+      setIsOperating(false);
+      setShowRenameDialog(false);
+    }
   };
 
   const handleDeleteClick = () => {
@@ -122,9 +130,16 @@ export default function TaskList({ listId, list }: TaskListProps) {
   };
 
   const handleDeleteConfirm = async () => {
+    if (isOperating) return; // Prevent double-submit
+
     logger.log(`[TaskList] Deleting list ${listId}`);
-    await deleteTaskList(listId);
-    setShowDeleteDialog(false);
+    setIsOperating(true);
+    try {
+      await deleteTaskList(listId);
+    } finally {
+      setIsOperating(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   // Combine refs for both sortable and droppable

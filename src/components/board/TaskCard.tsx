@@ -4,6 +4,7 @@
  * Supports hierarchical display with indentation and subtask counts
  */
 
+import { useState } from "react";
 import {
   Calendar,
   FileText,
@@ -53,6 +54,9 @@ export default function TaskCard({
   const isTaskSelected = useSelectionStore((s) => s.isTaskSelected);
   const toggleTaskSelection = useSelectionStore((s) => s.toggleTaskSelection);
 
+  // Local state for async operation safety
+  const [isToggling, setIsToggling] = useState(false);
+
   // Get task priority
   const taskPriority = getTaskPriority(task.id);
   const hasPriority = taskPriority !== undefined;
@@ -75,8 +79,15 @@ export default function TaskCard({
 
   const handleCheckboxClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening detail modal
+    if (isToggling) return; // Prevent double-clicks during async operation
+
     logger.log(`[TaskCard] Toggling task status: ${task.id}`);
-    await toggleTaskStatus(listId, task.id);
+    setIsToggling(true);
+    try {
+      await toggleTaskStatus(listId, task.id);
+    } finally {
+      setIsToggling(false);
+    }
   };
 
   const handleCardClick = () => {

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, DragCancelEvent, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { Plus, ArrowUpDown } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
@@ -53,7 +53,8 @@ export default function Board() {
       activationConstraint: {
         distance: 8, // Require 8px movement before drag starts
       },
-    })
+    }),
+    useSensor(KeyboardSensor)
   );
 
   // Fetch task lists on mount
@@ -117,6 +118,12 @@ export default function Board() {
         setActiveTask(task);
       }
     }
+  };
+
+  const handleDragCancel = (_event: DragCancelEvent) => {
+    logger.log('[Board] Drag cancelled (Escape pressed or drag interrupted)');
+    setActiveTask(null);
+    setActiveListId(null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -242,6 +249,7 @@ export default function Board() {
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <SortableContext
           items={orderedTaskLists.map(l => l!.id)}
