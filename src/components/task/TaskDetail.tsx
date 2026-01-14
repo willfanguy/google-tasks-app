@@ -28,6 +28,7 @@ export default function TaskDetail() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority | undefined>(undefined);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the current task
   const task = selectedTaskId && selectedListId
@@ -69,30 +70,37 @@ export default function TaskDetail() {
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
+
     logger.log('[TaskDetail] Saving task changes');
+    setIsSubmitting(true);
 
-    // Convert YYYY-MM-DD to RFC 3339 timestamp at midnight UTC
-    let dueISO: string | undefined = undefined;
-    if (dueDate) {
-      const [year, month, day] = dueDate.split('-').map(Number);
-      const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-      dueISO = utcDate.toISOString();
+    try {
+      // Convert YYYY-MM-DD to RFC 3339 timestamp at midnight UTC
+      let dueISO: string | undefined = undefined;
+      if (dueDate) {
+        const [year, month, day] = dueDate.split('-').map(Number);
+        const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        dueISO = utcDate.toISOString();
+      }
+
+      const updates: Partial<Task> = {
+        title,
+        notes: notes || undefined,
+        due: dueISO,
+        status,
+      };
+
+      await updateTask(selectedListId, task.id, updates);
+
+      // Save labels and priority
+      setTaskLabels(task.id, selectedLabels);
+      setTaskPriority(task.id, priority);
+
+      handleClose();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const updates: Partial<Task> = {
-      title,
-      notes: notes || undefined,
-      due: dueISO,
-      status,
-    };
-
-    await updateTask(selectedListId, task.id, updates);
-
-    // Save labels and priority
-    setTaskLabels(task.id, selectedLabels);
-    setTaskPriority(task.id, priority);
-
-    handleClose();
   };
 
   const handleListChange = async (newListId: string) => {
@@ -469,9 +477,10 @@ export default function TaskDetail() {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
