@@ -167,6 +167,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             return { taskLists: updatedLists };
           });
 
+          useUIStore.getState().addNotification('success', `Created list "${title}"`);
           return createdList;
         } else {
           throw new Error(response.error || 'Failed to create task list');
@@ -228,11 +229,13 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             updatedLists[index] = updatedList;
             return { taskLists: updatedLists };
           });
+
+          useUIStore.getState().addNotification('success', `Renamed list to "${title}"`);
         } else {
           throw new Error(response.error || 'Failed to update task list');
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Failed to update task list';
+        const errorMsg = error instanceof Error ? error.message : 'Failed to rename list';
         logger.error('[TaskStore] Update task list error:', error);
         useUIStore.getState().addNotification('error', errorMsg);
 
@@ -278,14 +281,17 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         if (!response.success) {
           throw new Error(response.error || 'Failed to delete task list');
         }
+
+        useUIStore.getState().addNotification('success', `Deleted list "${deletedList.title}"`);
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to delete list';
         logger.error('[TaskStore] Delete task list error:', error);
+        useUIStore.getState().addNotification('error', errorMsg);
 
         // Rollback - restore deleted list
         set({
           taskLists: originalLists,
-          error:
-            error instanceof Error ? error.message : 'Failed to delete task list',
+          error: errorMsg,
         });
 
         // Re-fetch tasks for the restored list
@@ -408,12 +414,15 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             return { tasks: newTasks };
           });
 
+          useUIStore.getState().addNotification('success', 'Task created');
           return createdTask;
         } else {
           throw new Error(response.error || 'Failed to create task');
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to create task';
         logger.error('[TaskStore] Create task error:', error);
+        useUIStore.getState().addNotification('error', errorMsg);
 
         // Rollback optimistic update
         set((state) => {
@@ -518,31 +527,28 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             newTasks.set(listId, updatedTasks);
             return { tasks: newTasks };
           });
+
+          useUIStore.getState().addNotification('success', 'Task updated');
         } else {
           throw new Error(response.error || 'Failed to update task');
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to update task';
         logger.error('[TaskStore] Update task error:', error);
+        useUIStore.getState().addNotification('error', errorMsg);
 
         // Rollback to original task
         set((state) => {
           const currentTasks = state.tasks.get(listId) || [];
           const index = currentTasks.findIndex((t) => t.id === taskId);
           if (index === -1) {
-            return {
-              error:
-                error instanceof Error ? error.message : 'Failed to update task',
-            };
+            return { error: errorMsg };
           }
           const updatedTasks = [...currentTasks];
           updatedTasks[index] = originalTask;
           const newTasks = new Map(state.tasks);
           newTasks.set(listId, updatedTasks);
-          return {
-            tasks: newTasks,
-            error:
-              error instanceof Error ? error.message : 'Failed to update task',
-          };
+          return { tasks: newTasks, error: errorMsg };
         });
       }
     },
@@ -580,19 +586,19 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         if (!response.success) {
           throw new Error(response.error || 'Failed to delete task');
         }
+
+        useUIStore.getState().addNotification('success', 'Task deleted');
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to delete task';
         logger.error('[TaskStore] Delete task error:', error);
+        useUIStore.getState().addNotification('error', errorMsg);
 
         // Rollback - restore deleted task
         set((state) => {
           const currentTasks = state.tasks.get(listId) || [];
           const newTasks = new Map(state.tasks);
           newTasks.set(listId, [...currentTasks, deletedTask]);
-          return {
-            tasks: newTasks,
-            error:
-              error instanceof Error ? error.message : 'Failed to delete task',
-          };
+          return { tasks: newTasks, error: errorMsg };
         });
       }
     },
