@@ -93,6 +93,7 @@ export default function Sidebar() {
           onClick={toggleSidebar}
           className="p-2 rounded-lg hover:bg-accent transition-colors"
           title="Expand sidebar"
+          aria-label="Expand sidebar"
         >
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </button>
@@ -109,6 +110,7 @@ export default function Sidebar() {
           onClick={toggleSidebar}
           className="p-1.5 rounded-lg hover:bg-accent transition-colors"
           title="Collapse sidebar"
+          aria-label="Collapse sidebar"
         >
           <ChevronLeft className="w-4 h-4 text-muted-foreground" />
         </button>

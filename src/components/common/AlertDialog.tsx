@@ -35,21 +35,28 @@ export default function AlertDialog({
       />
 
       {/* Dialog */}
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md">
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-message"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+      >
         <div className="bg-card border border-border rounded-lg shadow-lg p-6" onKeyDown={handleKeyDown}>
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <h2 id="alert-dialog-title" className="text-lg font-semibold text-foreground">{title}</h2>
             <button
               onClick={onClose}
               className="p-1 hover:bg-accent rounded transition-colors"
+              aria-label="Close alert"
             >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
           {/* Message */}
-          <p className="text-sm text-muted-foreground mb-4">{message}</p>
+          <p id="alert-dialog-message" className="text-sm text-muted-foreground mb-4">{message}</p>
 
           {/* Action */}
           <div className="flex items-center justify-end">

@@ -204,16 +204,22 @@ export default function LabelManager() {
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-card rounded-lg border border-border shadow-xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="label-manager-title"
+          className="w-full max-w-md bg-card rounded-lg border border-border shadow-xl"
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Tag className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">Manage Labels</h2>
+              <h2 id="label-manager-title" className="text-lg font-semibold text-foreground">Manage Labels</h2>
             </div>
             <button
               onClick={closeLabelManager}
               className="p-1 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Close label manager"
             >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>

@@ -72,14 +72,21 @@ export default function AddTaskButton() {
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
+      aria-hidden="true"
     >
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-task-title"
+        className="bg-card rounded-lg shadow-xl w-full max-w-md"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">New Task</h2>
+          <h2 id="add-task-title" className="text-lg font-semibold text-foreground">New Task</h2>
           <button
             onClick={handleClose}
             className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>

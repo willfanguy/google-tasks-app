@@ -55,14 +55,20 @@ export default function InputDialog({
       />
 
       {/* Dialog */}
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="input-dialog-title"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+      >
         <div className="bg-card border border-border rounded-lg shadow-lg p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <h2 id="input-dialog-title" className="text-lg font-semibold text-foreground">{title}</h2>
             <button
               onClick={onCancel}
               className="p-1 hover:bg-accent rounded transition-colors"
+              aria-label="Close dialog"
             >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>

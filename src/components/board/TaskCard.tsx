@@ -230,6 +230,8 @@ export default function TaskCard({
             onClick={handleCollapseClick}
             className="mt-0.5 flex-shrink-0 hover:bg-accent rounded p-0.5 transition-colors"
             title={isCollapsed ? "Expand subtasks" : "Collapse subtasks"}
+            aria-label={isCollapsed ? "Expand subtasks" : "Collapse subtasks"}
+            aria-expanded={!isCollapsed}
           >
             {isCollapsed ? (
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -241,7 +243,11 @@ export default function TaskCard({
         {isSubtask && (
           <ChevronRight className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
         )}
-        <button onClick={handleCheckboxClick} className="mt-0.5 flex-shrink-0">
+        <button
+          onClick={handleCheckboxClick}
+          className="mt-0.5 flex-shrink-0"
+          aria-label={isCompleted ? "Mark task as incomplete" : "Mark task as complete"}
+        >
           <div
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
               isCompleted

@@ -151,6 +151,7 @@ export default function TaskList({ listId, list }: TaskListProps) {
           {...listeners}
           className="p-1 -ml-1 cursor-grab active:cursor-grabbing hover:bg-accent rounded transition-all flex-shrink-0 opacity-0 group-hover/header:opacity-100"
           title="Drag to reorder list"
+          aria-label="Drag to reorder list"
         >
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -168,6 +169,7 @@ export default function TaskList({ listId, list }: TaskListProps) {
             onClick={handleAddTask}
             className="p-1.5 rounded-lg hover:bg-accent transition-colors"
             title="Add task"
+            aria-label="Add task to this list"
           >
             <Plus className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -178,6 +180,9 @@ export default function TaskList({ listId, list }: TaskListProps) {
               onClick={() => setShowMenu(!showMenu)}
               className="p-1.5 rounded-lg hover:bg-accent transition-colors"
               title="List options"
+              aria-label="List options menu"
+              aria-expanded={showMenu}
+              aria-haspopup="true"
             >
               <MoreVertical className="w-4 h-4 text-muted-foreground" />
             </button>

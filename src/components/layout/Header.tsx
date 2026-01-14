@@ -99,6 +99,7 @@ export default function Header() {
           disabled={loading}
           className="p-2 rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Sync with Google Tasks"
+          aria-label="Sync with Google Tasks"
         >
           <RefreshCw className={`w-5 h-5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -112,6 +113,8 @@ export default function Header() {
               : 'hover:bg-accent'
           }`}
           title={isSelectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+          aria-label={isSelectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+          aria-pressed={isSelectionMode}
         >
           <CheckCheck className={`w-5 h-5 ${isSelectionMode ? '' : 'text-muted-foreground'}`} />
         </button>
@@ -121,6 +124,7 @@ export default function Header() {
           onClick={openLabelManager}
           className="p-2 rounded-lg hover:bg-accent transition-colors"
           title="Manage Labels"
+          aria-label="Manage Labels"
         >
           <Tag className="w-5 h-5 text-muted-foreground" />
         </button>
@@ -130,6 +134,7 @@ export default function Header() {
           onClick={handleSettings}
           className="p-2 rounded-lg hover:bg-accent transition-colors"
           title="Settings"
+          aria-label="Settings"
         >
           <Settings className="w-5 h-5 text-muted-foreground" />
         </button>
@@ -139,6 +144,7 @@ export default function Header() {
           onClick={handleLogout}
           className="p-2 rounded-lg hover:bg-accent transition-colors"
           title="Logout"
+          aria-label="Logout"
         >
           <LogOut className="w-5 h-5 text-muted-foreground" />
         </button>

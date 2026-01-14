@@ -42,13 +42,19 @@ export default function Settings() {
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-card rounded-lg border border-border shadow-xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="settings-title"
+          className="w-full max-w-md bg-card rounded-lg border border-border shadow-xl"
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground">Settings</h2>
+            <h2 id="settings-title" className="text-lg font-semibold text-foreground">Settings</h2>
             <button
               onClick={closeSettings}
               className="p-1 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Close settings"
             >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
