@@ -14,6 +14,8 @@ import { useUIStore } from '../../stores/uiStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { TaskList as TaskListType } from '../../types/task';
 import TaskCard from './TaskCard';
+import InputDialog from '../common/InputDialog';
+import ConfirmDialog from '../common/ConfirmDialog';
 import {
   organizeTasksHierarchically,
   flattenTasksWithDepth,
@@ -32,6 +34,8 @@ export default function TaskList({ listId, list }: TaskListProps) {
   const { openCreateTask, collapsedTasks, toggleCompletedSection, isCompletedSectionCollapsed } = useUIStore();
   const { getTaskLabels } = useLabelStore();
   const [showMenu, setShowMenu] = useState(false);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const tasksForList = tasks.get(listId) || [];
   const isLoading = loadingLists.has(listId);
@@ -97,29 +101,30 @@ export default function TaskList({ listId, list }: TaskListProps) {
     openCreateTask(listId);
   };
 
-  const handleRename = async () => {
-    const newTitle = prompt('Enter new list name:', list.title);
-    if (!newTitle || newTitle.trim() === '' || newTitle.trim() === list.title) {
-      return;
-    }
-
-    logger.log(`[TaskList] Renaming list ${listId} to:`, newTitle);
-    await updateTaskList(listId, newTitle.trim());
+  const handleRenameClick = () => {
     setShowMenu(false);
+    setShowRenameDialog(true);
   };
 
-  const handleDelete = async () => {
-    const confirmed = confirm(
-      `Are you sure you want to delete "${list.title}"?\n\nThis will delete all tasks in this list. This action cannot be undone.`
-    );
-
-    if (!confirmed) {
+  const handleRenameConfirm = async (newTitle: string) => {
+    if (newTitle.trim() === list.title) {
+      setShowRenameDialog(false);
       return;
     }
+    logger.log(`[TaskList] Renaming list ${listId} to:`, newTitle);
+    await updateTaskList(listId, newTitle.trim());
+    setShowRenameDialog(false);
+  };
 
+  const handleDeleteClick = () => {
+    setShowMenu(false);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     logger.log(`[TaskList] Deleting list ${listId}`);
     await deleteTaskList(listId);
-    setShowMenu(false);
+    setShowDeleteDialog(false);
   };
 
   // Combine refs for both sortable and droppable
@@ -188,14 +193,14 @@ export default function TaskList({ listId, list }: TaskListProps) {
                 {/* Menu */}
                 <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg z-20 py-1">
                   <button
-                    onClick={handleRename}
+                    onClick={handleRenameClick}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors text-left"
                   >
                     <Edit2 className="w-4 h-4" />
                     Rename List
                   </button>
                   <button
-                    onClick={handleDelete}
+                    onClick={handleDeleteClick}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-accent transition-colors text-left"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -207,6 +212,29 @@ export default function TaskList({ listId, list }: TaskListProps) {
           </div>
         </div>
       </div>
+
+      {/* Rename dialog */}
+      <InputDialog
+        isOpen={showRenameDialog}
+        title="Rename List"
+        message="Enter a new name for this list:"
+        placeholder="List name"
+        defaultValue={list.title}
+        onConfirm={handleRenameConfirm}
+        onCancel={() => setShowRenameDialog(false)}
+      />
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        title="Delete List"
+        message={`Are you sure you want to delete "${list.title}"? This will delete all tasks in this list. This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
 
       {/* Tasks area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[200px]">

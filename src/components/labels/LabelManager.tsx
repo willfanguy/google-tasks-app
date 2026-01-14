@@ -26,6 +26,7 @@ import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
 import { DEFAULT_LABEL_COLORS, LabelColor, Label } from '../../types/label';
 import { getColorClasses } from '../../utils/colorClasses';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface SortableLabelProps {
   label: Label;
@@ -126,6 +127,8 @@ export default function LabelManager() {
   const [selectedColor, setSelectedColor] = useState(DEFAULT_LABEL_COLORS[0]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingLabelId, setDeletingLabelId] = useState<string | null>(null);
 
   // Setup drag and drop sensors
   const sensors = useSensors(
@@ -156,10 +159,22 @@ export default function LabelManager() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this label? It will be removed from all tasks.')) {
-      deleteLabel(id);
+  const handleDeleteClick = (id: string) => {
+    setDeletingLabelId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletingLabelId) {
+      deleteLabel(deletingLabelId);
     }
+    setShowDeleteDialog(false);
+    setDeletingLabelId(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false);
+    setDeletingLabelId(null);
   };
 
   const startEdit = (id: string, name: string) => {
@@ -270,7 +285,7 @@ export default function LabelManager() {
                           setEditName={setEditName}
                           setEditingId={setEditingId}
                           handleEdit={handleEdit}
-                          handleDelete={handleDelete}
+                          handleDelete={handleDeleteClick}
                           startEdit={startEdit}
                         />
                       ))}
@@ -291,6 +306,18 @@ export default function LabelManager() {
             </button>
           </div>
         </div>
+
+        {/* Delete confirmation dialog */}
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          title="Delete Label"
+          message="Delete this label? It will be removed from all tasks."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
       </div>
     </>
   );

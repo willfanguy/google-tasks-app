@@ -13,6 +13,7 @@ import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priorit
 import { getSubtasks } from '../../utils/taskHierarchy';
 import { logger } from '../../utils/logger';
 import { getColorClasses } from '../../utils/colorClasses';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 export default function TaskDetail() {
   const { modals, selectedTaskId, selectedListId, closeTaskDetail, openQuickAdd } = useUIStore();
@@ -29,6 +30,9 @@ export default function TaskDetail() {
   const [priority, setPriority] = useState<Priority | undefined>(undefined);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showMoveWarning, setShowMoveWarning] = useState(false);
+  const [pendingMoveListId, setPendingMoveListId] = useState<string | null>(null);
 
   // Get the current task
   const task = selectedTaskId && selectedListId
@@ -109,11 +113,16 @@ export default function TaskDetail() {
 
     // Moving across lists creates a new task ID; also subtasks won't be moved.
     if (subtasks.length > 0) {
-      const ok = confirm(
-        'This task has subtasks. Moving it to another list will NOT move subtasks (they will remain in the current list). Continue?'
-      );
-      if (!ok) return;
+      setPendingMoveListId(newListId);
+      setShowMoveWarning(true);
+      return;
     }
+
+    await performMove(newListId);
+  };
+
+  const performMove = async (newListId: string) => {
+    if (!selectedListId || !selectedTaskId) return;
 
     try {
       logger.log('[TaskDetail] Moving task to different list:', {
@@ -138,6 +147,19 @@ export default function TaskDetail() {
     }
   };
 
+  const handleMoveConfirm = async () => {
+    setShowMoveWarning(false);
+    if (pendingMoveListId) {
+      await performMove(pendingMoveListId);
+      setPendingMoveListId(null);
+    }
+  };
+
+  const handleMoveCancelDialog = () => {
+    setShowMoveWarning(false);
+    setPendingMoveListId(null);
+  };
+
   const toggleLabel = (labelId: string) => {
     setSelectedLabels(prev =>
       prev.includes(labelId)
@@ -146,12 +168,15 @@ export default function TaskDetail() {
     );
   };
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      logger.log('[TaskDetail] Deleting task');
-      await deleteTask(selectedListId, task.id);
-      handleClose();
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    logger.log('[TaskDetail] Deleting task');
+    setShowDeleteDialog(false);
+    await deleteTask(selectedListId, task.id);
+    handleClose();
   };
 
   const handleToggleStatus = () => {
@@ -458,10 +483,34 @@ export default function TaskDetail() {
           </div>
         </div>
 
+        {/* Delete confirmation dialog */}
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          title="Delete Task"
+          message="Are you sure you want to delete this task?"
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setShowDeleteDialog(false)}
+        />
+
+        {/* Move warning dialog */}
+        <ConfirmDialog
+          isOpen={showMoveWarning}
+          title="Move Task"
+          message="This task has subtasks. Moving it to another list will NOT move subtasks (they will remain in the current list). Continue?"
+          confirmText="Move"
+          cancelText="Cancel"
+          variant="warning"
+          onConfirm={handleMoveConfirm}
+          onCancel={handleMoveCancelDialog}
+        />
+
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-border">
           <button
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             className="flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
           >
             <Trash2 className="w-4 h-4" />

@@ -10,6 +10,7 @@ import { useFilterStore } from '../../stores/filterStore';
 import { logger } from '../../utils/logger';
 import InputDialog from '../common/InputDialog';
 import AlertDialog from '../common/AlertDialog';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 // Map icon names to components
 const iconMap: Record<string, any> = {
@@ -25,6 +26,8 @@ export default function Sidebar() {
   const [showMenu, setShowMenu] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showNoFiltersAlert, setShowNoFiltersAlert] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingPresetId, setDeletingPresetId] = useState<string | null>(null);
 
   const handlePresetSelect = (presetId: string) => {
     logger.log('[Sidebar] Preset selected:', presetId);
@@ -59,15 +62,24 @@ export default function Sidebar() {
     setShowCreateDialog(false);
   };
 
-  const handleDeletePreset = (presetId: string) => {
-    const preset = filterPresets.find(p => p.id === presetId);
-    if (!preset) return;
+  const handleDeletePresetClick = (presetId: string) => {
+    setDeletingPresetId(presetId);
+    setShowDeleteDialog(true);
+    setShowMenu(null);
+  };
 
-    if (confirm(`Delete "${preset.name}"?`)) {
-      logger.log('[Sidebar] Deleting preset:', presetId);
-      deletePreset(presetId);
-      setShowMenu(null);
+  const handleDeletePresetConfirm = () => {
+    if (deletingPresetId) {
+      logger.log('[Sidebar] Deleting preset:', deletingPresetId);
+      deletePreset(deletingPresetId);
     }
+    setShowDeleteDialog(false);
+    setDeletingPresetId(null);
+  };
+
+  const handleDeletePresetCancel = () => {
+    setShowDeleteDialog(false);
+    setDeletingPresetId(null);
   };
 
   // Separate default and custom presets
@@ -172,7 +184,7 @@ export default function Sidebar() {
                         />
                         <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden">
                           <button
-                            onClick={() => handleDeletePreset(preset.id)}
+                            onClick={() => handleDeletePresetClick(preset.id)}
                             className="flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors whitespace-nowrap"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -216,6 +228,18 @@ export default function Sidebar() {
         title="No Filters or Sorts Applied"
         message="Please apply some filters or sorts first before saving a view."
         onClose={() => setShowNoFiltersAlert(false)}
+      />
+
+      {/* Delete preset confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        title="Delete View"
+        message={`Delete "${filterPresets.find(p => p.id === deletingPresetId)?.name || 'this view'}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeletePresetConfirm}
+        onCancel={handleDeletePresetCancel}
       />
     </aside>
   );

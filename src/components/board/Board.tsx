@@ -13,6 +13,7 @@ import { useBoardStore } from '../../stores/boardStore';
 import { useUIStore } from '../../stores/uiStore';
 import TaskList from './TaskList';
 import EmptyTaskLists from './EmptyTaskLists';
+import InputDialog from '../common/InputDialog';
 import { Task } from '../../types/task';
 import { sortTaskLists } from '../../utils/listSorting';
 import { logger } from '../../utils/logger';
@@ -25,6 +26,7 @@ export default function Board() {
   const addNotification = useUIStore((s) => s.addNotification);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
+  const [showCreateListDialog, setShowCreateListDialog] = useState(false);
 
   const boardId = 'default-board'; // Using default board for now
   const boardLayout = getBoardLayout(boardId);
@@ -186,15 +188,15 @@ export default function Board() {
     return <EmptyTaskLists />;
   }
 
-  const handleCreateList = async () => {
-    const title = prompt('Enter list name:');
-    if (!title || title.trim() === '') {
-      return;
-    }
+  const handleCreateListClick = () => {
+    setShowCreateListDialog(true);
+  };
 
+  const handleCreateListConfirm = async (title: string) => {
     logger.log('[Board] Creating new list:', title);
     const { createTaskList } = useTaskStore.getState();
     await createTaskList(title.trim());
+    setShowCreateListDialog(false);
   };
 
   // Board with task lists
@@ -238,7 +240,7 @@ export default function Board() {
             {/* Create new list button */}
             <div className="w-80 flex-shrink-0">
               <button
-                onClick={handleCreateList}
+                onClick={handleCreateListClick}
                 className="w-full h-full min-h-[200px] flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-accent/50 transition-colors"
               >
                 <Plus className="w-8 h-8 text-muted-foreground" />
@@ -247,6 +249,16 @@ export default function Board() {
                 </span>
               </button>
             </div>
+
+            {/* Create list dialog */}
+            <InputDialog
+              isOpen={showCreateListDialog}
+              title="Create New List"
+              message="Enter a name for the new list:"
+              placeholder="List name"
+              onConfirm={handleCreateListConfirm}
+              onCancel={() => setShowCreateListDialog(false)}
+            />
             </div>
           </div>
         </SortableContext>
