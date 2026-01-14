@@ -3,14 +3,13 @@
  * Search, filter, and sort controls for tasks
  */
 
-import { useState } from 'react';
-import { Search, Filter, X, Tag, Ban, Check, LayoutGrid, List, Flag } from 'lucide-react';
+import { Search, Filter, X, LayoutGrid, List, Flag } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
 import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { logger } from '../../utils/logger';
-import { getColorClasses } from '../../utils/colorClasses';
+import LabelPickerDropdown from '../common/LabelPickerDropdown';
 
 export default function FilterBar() {
   const {
@@ -26,8 +25,6 @@ export default function FilterBar() {
   const { getSortedLabels } = useLabelStore();
   const labels = getSortedLabels();
   const { viewMode, setViewMode } = useUIStore();
-  const [showLabelPicker, setShowLabelPicker] = useState(false);
-  const [showExcludeLabelPicker, setShowExcludeLabelPicker] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -137,127 +134,21 @@ export default function FilterBar() {
       </div>
 
       {/* Label filter */}
-      <div className="relative flex items-center gap-2">
-        <Tag className="w-4 h-4 text-muted-foreground" />
-        <button
-          onClick={() => setShowLabelPicker(!showLabelPicker)}
-          className={`px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer hover:bg-accent transition-colors flex items-center gap-2 ${
-            activeFilters.labels.length > 0 ? 'border-primary' : ''
-          }`}
-        >
-          <span>
-            {activeFilters.labels.length > 0
-              ? `${activeFilters.labels.length} Label${activeFilters.labels.length > 1 ? 's' : ''}`
-              : 'Labels'}
-          </span>
-        </button>
-
-        {showLabelPicker && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowLabelPicker(false)}
-            />
-
-            {/* Dropdown */}
-            <div className="absolute left-0 top-full mt-1 w-64 bg-card border border-border rounded-lg shadow-lg z-20 p-2 max-h-60 overflow-y-auto">
-              {labels.length === 0 ? (
-                <p className="text-xs text-muted-foreground p-2 text-center">
-                  No labels yet. Create one in the label manager!
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {labels.map((label) => {
-                    const isSelected = activeFilters.labels.includes(label.id);
-                    return (
-                      <button
-                        key={label.id}
-                        onClick={() => toggleLabelFilter(label.id)}
-                        className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors ${
-                          isSelected ? 'bg-accent' : ''
-                        }`}
-                      >
-                        <div
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text}`}
-                        >
-                          {label.name}
-                        </div>
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-primary ml-auto" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+      <LabelPickerDropdown
+        labels={labels}
+        selectedLabelIds={activeFilters.labels}
+        onToggle={toggleLabelFilter}
+        variant="filter"
+      />
 
       {/* Exclude Label filter */}
-      <div className="relative flex items-center gap-2">
-        <Ban className="w-4 h-4 text-muted-foreground" />
-        <button
-          onClick={() => setShowExcludeLabelPicker(!showExcludeLabelPicker)}
-          className={`px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer hover:bg-accent transition-colors flex items-center gap-2 ${
-            activeFilters.excludeLabels.length > 0 ? 'border-primary' : ''
-          }`}
-        >
-          <span>
-            {activeFilters.excludeLabels.length > 0
-              ? `Exclude ${activeFilters.excludeLabels.length}`
-              : 'Exclude'}
-          </span>
-        </button>
-
-        {showExcludeLabelPicker && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowExcludeLabelPicker(false)}
-            />
-
-            {/* Dropdown */}
-            <div className="absolute left-0 top-full mt-1 w-64 bg-card border border-border rounded-lg shadow-lg z-20 p-2 max-h-60 overflow-y-auto">
-              {labels.length === 0 ? (
-                <p className="text-xs text-muted-foreground p-2 text-center">
-                  No labels yet. Create one in the label manager!
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground p-2 border-b border-border">
-                    Hide tasks with these labels
-                  </div>
-                  {labels.map((label) => {
-                    const isSelected = activeFilters.excludeLabels.includes(label.id);
-                    return (
-                      <button
-                        key={label.id}
-                        onClick={() => toggleExcludeLabelFilter(label.id)}
-                        className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors ${
-                          isSelected ? 'bg-accent' : ''
-                        }`}
-                      >
-                        <div
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text}`}
-                        >
-                          {label.name}
-                        </div>
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-primary ml-auto" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+      <LabelPickerDropdown
+        labels={labels}
+        selectedLabelIds={activeFilters.excludeLabels}
+        onToggle={toggleExcludeLabelFilter}
+        variant="exclude"
+        dropdownHeader="Hide tasks with these labels"
+      />
 
       {/* Clear filters button */}
       {filtersActive && (

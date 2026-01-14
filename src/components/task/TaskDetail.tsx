@@ -14,6 +14,7 @@ import { getSubtasks } from '../../utils/taskHierarchy';
 import { logger } from '../../utils/logger';
 import { getColorClasses } from '../../utils/colorClasses';
 import ConfirmDialog from '../common/ConfirmDialog';
+import LabelPickerDropdown from '../common/LabelPickerDropdown';
 
 export default function TaskDetail() {
   const { modals, selectedTaskId, selectedListId, closeTaskDetail, openQuickAdd } = useUIStore();
@@ -28,7 +29,6 @@ export default function TaskDetail() {
   const [status, setStatus] = useState<'needsAction' | 'completed'>('needsAction');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority | undefined>(undefined);
-  const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMoveWarning, setShowMoveWarning] = useState(false);
@@ -362,58 +362,12 @@ export default function TaskDetail() {
               )}
 
               {/* Label picker */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLabelPicker(!showLabelPicker)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Label</span>
-                </button>
-
-                {showLabelPicker && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowLabelPicker(false)}
-                    />
-
-                    {/* Dropdown */}
-                    <div className="absolute left-0 top-full mt-1 w-64 bg-card border border-border rounded-lg shadow-lg z-20 p-2 max-h-60 overflow-y-auto">
-                      {labels.length === 0 ? (
-                        <p className="text-xs text-muted-foreground p-2 text-center">
-                          No labels yet. Create one in the label manager!
-                        </p>
-                      ) : (
-                        <div className="space-y-1">
-                          {labels.map(label => {
-                            const isSelected = selectedLabels.includes(label.id);
-                            return (
-                              <button
-                                key={label.id}
-                                onClick={() => toggleLabel(label.id)}
-                                className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors ${
-                                  isSelected ? 'bg-accent' : ''
-                                }`}
-                              >
-                                <div
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses(label.color).bg} ${getColorClasses(label.color).text}`}
-                                >
-                                  {label.name}
-                                </div>
-                                {isSelected && (
-                                  <Check className="w-4 h-4 text-primary ml-auto" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
+              <LabelPickerDropdown
+                labels={labels}
+                selectedLabelIds={selectedLabels}
+                onToggle={toggleLabel}
+                variant="select"
+              />
             </div>
           </div>
 
