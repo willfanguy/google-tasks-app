@@ -11,7 +11,6 @@ interface ModalState {
   taskDetail: boolean;
   createTask: boolean;
   quickAdd: boolean;
-  createBoard: boolean;
   createLabel: boolean;
   labelManager: boolean;
   settings: boolean;
@@ -56,8 +55,6 @@ interface UIState {
   closeCreateTask: () => void;
   openQuickAdd: (listId?: string, parentTaskId?: string) => void;
   closeQuickAdd: () => void;
-  openCreateBoard: () => void;
-  closeCreateBoard: () => void;
   openCreateLabel: () => void;
   closeCreateLabel: () => void;
   openLabelManager: () => void;
@@ -97,7 +94,6 @@ const DEFAULT_MODALS: ModalState = {
   taskDetail: false,
   createTask: false,
   quickAdd: false,
-  createBoard: false,
   createLabel: false,
   labelManager: false,
   settings: false,
@@ -193,26 +189,6 @@ export const useUIStore = create<UIState>()(
         set((state) => ({
           modals: { ...state.modals, quickAdd: false },
           parentTaskId: null,
-        }));
-      },
-
-      /**
-       * Opens create board modal
-       */
-      openCreateBoard: () => {
-        logger.log('[UIStore] Opening create board');
-        set((state) => ({
-          modals: { ...state.modals, createBoard: true },
-        }));
-      },
-
-      /**
-       * Closes create board modal
-       */
-      closeCreateBoard: () => {
-        logger.log('[UIStore] Closing create board');
-        set((state) => ({
-          modals: { ...state.modals, createBoard: false },
         }));
       },
 

@@ -83,28 +83,6 @@ export function flattenTasksWithDepth(
 }
 
 /**
- * Counts the number of subtasks for a given task
- * Includes all nested levels
- *
- * @param task - Task with potential children
- * @returns Total count of all subtasks
- */
-export function countSubtasks(task: TaskWithChildren): number {
-  if (!task.children || task.children.length === 0) {
-    return 0;
-  }
-
-  let count = task.children.length;
-
-  // Recursively count children's children
-  task.children.forEach(child => {
-    count += countSubtasks(child);
-  });
-
-  return count;
-}
-
-/**
  * Counts only direct subtasks (not nested)
  *
  * @param task - Task with potential children
@@ -125,34 +103,3 @@ export function getSubtasks(taskId: string, tasks: Task[]): Task[] {
   return tasks.filter(task => task.parent === taskId);
 }
 
-/**
- * Checks if a task has any subtasks
- *
- * @param taskId - Task ID to check
- * @param tasks - Flat array of all tasks
- * @returns True if task has subtasks
- */
-export function hasSubtasks(taskId: string, tasks: Task[]): boolean {
-  return tasks.some(task => task.parent === taskId);
-}
-
-/**
- * Gets the depth level of a task in the hierarchy
- *
- * @param task - Task to check
- * @param tasks - Flat array of all tasks
- * @returns Depth level (0 for root tasks)
- */
-export function getTaskDepth(task: Task, tasks: Task[]): number {
-  let depth = 0;
-  let currentTask = task;
-
-  while (currentTask.parent) {
-    depth++;
-    const parent = tasks.find(t => t.id === currentTask.parent);
-    if (!parent) break;
-    currentTask = parent;
-  }
-
-  return depth;
-}

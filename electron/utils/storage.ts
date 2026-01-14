@@ -97,24 +97,3 @@ export async function clearTokenStorage(): Promise<void> {
   }
 }
 
-/**
- * Check if tokens exist in storage
- */
-export async function hasTokenStorage(): Promise<boolean> {
-  const store = readStore();
-  return TOKENS_KEY in store;
-}
-
-/**
- * Get all stored data (for debugging)
- */
-export async function getAllStorage(): Promise<StoreSchema> {
-  return readStore();
-}
-
-/**
- * Clear all stored data
- */
-export async function clearAllStorage(): Promise<void> {
-  writeStore({});
-}
