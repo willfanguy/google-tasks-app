@@ -41,10 +41,17 @@ export default function TaskCard({
   showListName = false,
   inlineLabels = false,
 }: TaskCardProps) {
-  const { toggleTaskStatus } = useTaskStore();
-  const { openTaskDetail, toggleTaskCollapse, isTaskCollapsed } = useUIStore();
-  const { getTaskLabels, getLabelById, getTaskPriority } = useLabelStore();
-  const { isSelectionMode, isTaskSelected, toggleTaskSelection } = useSelectionStore();
+  // Store selectors - only subscribe to what's needed
+  const toggleTaskStatus = useTaskStore((s) => s.toggleTaskStatus);
+  const openTaskDetail = useUIStore((s) => s.openTaskDetail);
+  const toggleTaskCollapse = useUIStore((s) => s.toggleTaskCollapse);
+  const isTaskCollapsed = useUIStore((s) => s.isTaskCollapsed);
+  const getTaskLabels = useLabelStore((s) => s.getTaskLabels);
+  const getLabelById = useLabelStore((s) => s.getLabelById);
+  const getTaskPriority = useLabelStore((s) => s.getTaskPriority);
+  const isSelectionMode = useSelectionStore((s) => s.isSelectionMode);
+  const isTaskSelected = useSelectionStore((s) => s.isTaskSelected);
+  const toggleTaskSelection = useSelectionStore((s) => s.toggleTaskSelection);
 
   // Get task priority
   const taskPriority = getTaskPriority(task.id);

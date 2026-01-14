@@ -19,10 +19,26 @@ import { sortTaskLists } from '../../utils/listSorting';
 import { logger } from '../../utils/logger';
 
 export default function Board() {
-  const { authenticated } = useAuthStore();
-  const { taskLists, tasks, loading, fetchTaskLists, moveTask, getTaskById } = useTaskStore();
-  const { getBoardLayout, reorderLists, addListToBoard, removeListFromBoard } = useBoardStore();
-  const { listSortMode, setListSortMode } = useUIStore();
+  // Auth store - only subscribe to authenticated state
+  const authenticated = useAuthStore((s) => s.authenticated);
+
+  // Task store - need multiple values, all related to tasks
+  const taskLists = useTaskStore((s) => s.taskLists);
+  const tasks = useTaskStore((s) => s.tasks);
+  const loading = useTaskStore((s) => s.loading);
+  const fetchTaskLists = useTaskStore((s) => s.fetchTaskLists);
+  const moveTask = useTaskStore((s) => s.moveTask);
+  const getTaskById = useTaskStore((s) => s.getTaskById);
+
+  // Board store - layout functions
+  const getBoardLayout = useBoardStore((s) => s.getBoardLayout);
+  const reorderLists = useBoardStore((s) => s.reorderLists);
+  const addListToBoard = useBoardStore((s) => s.addListToBoard);
+  const removeListFromBoard = useBoardStore((s) => s.removeListFromBoard);
+
+  // UI store - only specific values needed
+  const listSortMode = useUIStore((s) => s.listSortMode);
+  const setListSortMode = useUIStore((s) => s.setListSortMode);
   const addNotification = useUIStore((s) => s.addNotification);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);

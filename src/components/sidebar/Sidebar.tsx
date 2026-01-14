@@ -21,8 +21,18 @@ const iconMap: Record<string, any> = {
 };
 
 export default function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const { filterPresets, activePresetId, applyPreset, createPreset, deletePreset, hasActiveFilters, hasActiveSorts } = useFilterStore();
+  // UI store selectors
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
+  // Filter store selectors
+  const filterPresets = useFilterStore((s) => s.filterPresets);
+  const activePresetId = useFilterStore((s) => s.activePresetId);
+  const applyPreset = useFilterStore((s) => s.applyPreset);
+  const createPreset = useFilterStore((s) => s.createPreset);
+  const deletePreset = useFilterStore((s) => s.deletePreset);
+  const hasActiveFilters = useFilterStore((s) => s.hasActiveFilters);
+  const hasActiveSorts = useFilterStore((s) => s.hasActiveSorts);
   const [showMenu, setShowMenu] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showNoFiltersAlert, setShowNoFiltersAlert] = useState(false);
