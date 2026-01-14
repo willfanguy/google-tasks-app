@@ -25,22 +25,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
 import { DEFAULT_LABEL_COLORS, LabelColor, Label } from '../../types/label';
-
-// Map colors to Tailwind classes
-const getColorClasses = (color: string) => {
-  const colorMap: Record<string, { bg: string; text: string; name: string }> = {
-    '#ef4444': { bg: 'bg-red-500', text: 'text-white', name: 'Red' },
-    '#f97316': { bg: 'bg-orange-500', text: 'text-white', name: 'Orange' },
-    '#f59e0b': { bg: 'bg-amber-500', text: 'text-white', name: 'Amber' },
-    '#84cc16': { bg: 'bg-lime-500', text: 'text-white', name: 'Lime' },
-    '#22c55e': { bg: 'bg-green-500', text: 'text-white', name: 'Green' },
-    '#06b6d4': { bg: 'bg-cyan-500', text: 'text-white', name: 'Cyan' },
-    '#3b82f6': { bg: 'bg-blue-500', text: 'text-white', name: 'Blue' },
-    '#8b5cf6': { bg: 'bg-violet-500', text: 'text-white', name: 'Violet' },
-    '#ec4899': { bg: 'bg-pink-500', text: 'text-white', name: 'Pink' },
-  };
-  return colorMap[color] || colorMap['#3b82f6'];
-};
+import { getColorClasses } from '../../utils/colorClasses';
 
 interface SortableLabelProps {
   label: Label;

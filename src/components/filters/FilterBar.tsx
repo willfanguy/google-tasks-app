@@ -10,22 +10,7 @@ import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
 import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { logger } from '../../utils/logger';
-
-// Map colors to Tailwind classes
-const getColorClasses = (color: string) => {
-  const colorMap: Record<string, { bg: string; text: string }> = {
-    '#ef4444': { bg: 'bg-red-500', text: 'text-white' },
-    '#f97316': { bg: 'bg-orange-500', text: 'text-white' },
-    '#f59e0b': { bg: 'bg-amber-500', text: 'text-white' },
-    '#84cc16': { bg: 'bg-lime-500', text: 'text-white' },
-    '#22c55e': { bg: 'bg-green-500', text: 'text-white' },
-    '#06b6d4': { bg: 'bg-cyan-500', text: 'text-white' },
-    '#3b82f6': { bg: 'bg-blue-500', text: 'text-white' },
-    '#8b5cf6': { bg: 'bg-violet-500', text: 'text-white' },
-    '#ec4899': { bg: 'bg-pink-500', text: 'text-white' },
-  };
-  return colorMap[color] || colorMap['#3b82f6'];
-};
+import { getColorClasses } from '../../utils/colorClasses';
 
 export default function FilterBar() {
   const {
