@@ -21,6 +21,7 @@ import { useTaskStore } from "../../stores/taskStore";
 import { useUIStore } from "../../stores/uiStore";
 import { useLabelStore } from "../../stores/labelStore";
 import { useSelectionStore } from "../../stores/selectionStore";
+import { useNavigationStore } from "../../stores/navigationStore";
 import { TaskWithChildren } from "../../utils/taskHierarchy";
 import { logger } from "../../utils/logger";
 import { getColorClasses } from "../../utils/colorClasses";
@@ -53,6 +54,7 @@ export default function TaskCard({
   const isSelectionMode = useSelectionStore((s) => s.isSelectionMode);
   const isTaskSelected = useSelectionStore((s) => s.isTaskSelected);
   const toggleTaskSelection = useSelectionStore((s) => s.toggleTaskSelection);
+  const focusedTaskId = useNavigationStore((s) => s.focusedTaskId);
 
   // Local state for async operation safety
   const [isToggling, setIsToggling] = useState(false);
@@ -116,6 +118,7 @@ export default function TaskCard({
 
   const isCompleted = task.status === "completed";
   const isSelected = isTaskSelected(task.id);
+  const isFocused = focusedTaskId === task.id;
   const hasNotes = task.notes && task.notes.length > 0;
   const hasDueDate = task.due !== undefined;
   const hasSubtasks = subtaskCount > 0;
@@ -218,7 +221,7 @@ export default function TaskCard({
         isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
       } ${isCompleted ? "opacity-70" : ""} ${isDragging ? "opacity-50" : ""} ${
         isSelected ? "ring-2 ring-primary bg-accent/30" : ""
-      } ${
+      } ${isFocused && !isSelected ? "ring-2 ring-blue-400" : ""} ${
         isOverdue && !isCompleted
           ? "border-l-4 border-l-red-500 border-t border-r border-b border-border"
           : isDueToday && !isCompleted

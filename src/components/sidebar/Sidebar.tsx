@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, List, Circle, CheckCircle, Calendar, Trash2, MoreVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, List, Circle, CheckCircle, Calendar, Trash2, MoreVertical, Sun } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useFilterStore } from '../../stores/filterStore';
 import { logger } from '../../utils/logger';
@@ -14,6 +14,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 
 // Map icon names to components
 const iconMap: Record<string, any> = {
+  sun: Sun,
   list: List,
   circle: Circle,
   'check-circle': CheckCircle,
@@ -93,8 +94,8 @@ export default function Sidebar() {
   };
 
   // Separate default and custom presets
-  const defaultPresets = filterPresets.slice(0, 4); // First 4 are defaults
-  const customPresets = filterPresets.slice(4);
+  const defaultPresets = filterPresets.slice(0, 5); // First 5 are defaults (My Day, All, Active, Completed, Due Today)
+  const customPresets = filterPresets.slice(5);
 
   if (sidebarCollapsed) {
     return (

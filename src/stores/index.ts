@@ -10,6 +10,7 @@ export { useFilterStore } from './filterStore';
 export { useLabelStore } from './labelStore';
 export { useUIStore } from './uiStore';
 export { useSelectionStore } from './selectionStore';
+export { useNavigationStore } from './navigationStore';
 
 // Re-export types for convenience
 export type { Task, TaskList, SortOption } from '../types/task';

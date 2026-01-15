@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Check, Flag } from 'lucide-react';
+import { X, Plus, Check, Flag } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useLabelStore } from '../../stores/labelStore';
@@ -13,6 +13,7 @@ import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priorit
 import { logger } from '../../utils/logger';
 import { getColorClasses } from '../../utils/colorClasses';
 import LabelPickerDropdown from '../common/LabelPickerDropdown';
+import SmartDateInput from '../common/SmartDateInput';
 
 export default function QuickAddTask() {
   const { modals, closeQuickAdd, selectedListId, parentTaskId } = useUIStore();
@@ -206,15 +207,11 @@ export default function QuickAddTask() {
             <label className="block text-sm font-medium text-foreground mb-1.5">
               Due Date
             </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-              />
-            </div>
+            <SmartDateInput
+              value={dueDate}
+              onChange={setDueDate}
+              placeholder="today, tomorrow, next monday..."
+            />
           </div>
 
           {/* Priority */}

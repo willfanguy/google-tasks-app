@@ -279,9 +279,9 @@ export const useFilterStore = create<FilterState>()(
           return;
         }
 
-        // Special handling for "today" preset - compute current date dynamically
+        // Special handling for date-based presets - compute current date dynamically
         let filters = { ...preset.filters };
-        if (presetId === 'today') {
+        if (presetId === 'today' || presetId === 'myDay') {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const todayEnd = new Date();

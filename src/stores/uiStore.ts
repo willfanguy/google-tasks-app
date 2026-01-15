@@ -15,6 +15,7 @@ interface ModalState {
   labelManager: boolean;
   settings: boolean;
   filterPanel: boolean;
+  keyboardHelp: boolean;
 }
 
 interface LoadingState {
@@ -62,6 +63,8 @@ interface UIState {
   openSettings: () => void;
   closeSettings: () => void;
   toggleFilterPanel: () => void;
+  openKeyboardHelp: () => void;
+  closeKeyboardHelp: () => void;
   closeAllModals: () => void;
 
   // Actions - UI preferences
@@ -98,6 +101,7 @@ const DEFAULT_MODALS: ModalState = {
   labelManager: false,
   settings: false,
   filterPanel: false,
+  keyboardHelp: false,
 };
 
 // Track notification timeouts to prevent memory leaks
@@ -259,6 +263,26 @@ export const useUIStore = create<UIState>()(
         logger.log('[UIStore] Toggling filter panel');
         set((state) => ({
           modals: { ...state.modals, filterPanel: !state.modals.filterPanel },
+        }));
+      },
+
+      /**
+       * Opens keyboard shortcuts help modal
+       */
+      openKeyboardHelp: () => {
+        logger.log('[UIStore] Opening keyboard help');
+        set((state) => ({
+          modals: { ...state.modals, keyboardHelp: true },
+        }));
+      },
+
+      /**
+       * Closes keyboard shortcuts help modal
+       */
+      closeKeyboardHelp: () => {
+        logger.log('[UIStore] Closing keyboard help');
+        set((state) => ({
+          modals: { ...state.modals, keyboardHelp: false },
         }));
       },
 

@@ -16,6 +16,7 @@ import FloatingAddButton from './components/task/FloatingAddButton';
 import LabelManager from './components/labels/LabelManager';
 import Settings from './components/settings/Settings';
 import Notifications from './components/common/Notifications';
+import KeyboardShortcutsHelp from './components/common/KeyboardShortcutsHelp';
 import { logger } from './utils/logger';
 
 function App() {
@@ -106,6 +107,7 @@ function App() {
       <QuickAddTask />
       <LabelManager />
       <Settings />
+      <KeyboardShortcutsHelp />
 
       {/* Floating Action Button */}
       <FloatingAddButton />

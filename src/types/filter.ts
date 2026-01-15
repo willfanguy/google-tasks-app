@@ -31,6 +31,18 @@ export interface FilterPreset {
 
 export const DEFAULT_FILTER_PRESETS: FilterPreset[] = [
   {
+    id: 'myDay',
+    name: 'My Day',
+    filters: {
+      status: 'needsAction',
+      dateRange: {
+        start: new Date(),
+        end: new Date(),
+      },
+    },
+    icon: 'sun',
+  },
+  {
     id: 'all',
     name: 'All Tasks',
     filters: {},
