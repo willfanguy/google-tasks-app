@@ -3,12 +3,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Now import everything else
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, globalShortcut } from 'electron';
 import path from 'path';
 import { createMainWindow } from './utils/window';
 import { setupAuthHandlers } from './ipc/auth';
 import { setupStorageHandlers } from './ipc/storage';
 import { setupTaskHandlers } from './ipc/tasks';
+import { setupQuickAddHandlers } from './ipc/quickAdd';
+import { createQuickAddWindow, destroyQuickAddWindow } from './quickAddWindow';
 import { logger } from './utils/logger';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -54,12 +56,31 @@ const initializeHandlers = (): void => {
   // Setup storage handlers
   setupStorageHandlers();
 
+  // Setup quick add handlers
+  setupQuickAddHandlers();
+
   logger.log('[Main] IPC handlers initialized successfully');
+};
+
+// Register global shortcuts
+const registerGlobalShortcuts = (): void => {
+  // Global shortcut to open quick add window (Cmd/Ctrl+Shift+N)
+  const registered = globalShortcut.register('CommandOrControl+Shift+N', () => {
+    logger.log('[Main] Global shortcut triggered: Quick Add');
+    createQuickAddWindow();
+  });
+
+  if (registered) {
+    logger.log('[Main] Global shortcut registered: CommandOrControl+Shift+N');
+  } else {
+    logger.error('[Main] Failed to register global shortcut');
+  }
 };
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   initializeHandlers();
+  registerGlobalShortcuts();
   createWindow();
 
   app.on('activate', () => {
@@ -69,6 +90,16 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+// Cleanup on quit
+app.on('will-quit', () => {
+  // Unregister all global shortcuts
+  globalShortcut.unregisterAll();
+  logger.log('[Main] Global shortcuts unregistered');
+
+  // Destroy quick add window if it exists
+  destroyQuickAddWindow();
 });
 
 // Quit when all windows are closed, except on macOS

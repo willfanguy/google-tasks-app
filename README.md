@@ -2,17 +2,28 @@
 
 A desktop application for Google Tasks featuring a Kanban-style board interface with advanced filtering, sorting, and task management capabilities.
 
-## Features (Planned)
+## Features
 
+### Core Features
 - **Kanban Board Interface**: Visual task management with drag-and-drop
-- **Advanced Filtering**: Filter tasks by labels, due dates, status, and more
+- **List View**: Unified list view across all task lists
+- **Google Tasks Sync**: Full bidirectional sync with Google Tasks API
+- **Labels & Priority**: Custom labels and priority levels (local metadata)
+- **Advanced Filtering**: Filter by labels, priority, due dates, and status
 - **Flexible Sorting**: Sort by due date, priority, title, or custom order
-- **Google Tasks Sync**: Full bidirectional sync with Google Tasks
-- **Labels & Tags**: Custom labels for task categorization (local metadata)
-- **Multiple Boards**: Organize tasks across different boards
-- **Offline Support**: Work offline with automatic sync when connected
-- **Keyboard Shortcuts**: Power user features for quick navigation
-- **Cross-Platform**: Windows, macOS, and Linux support
+
+### Productivity Features
+- **Global Quick-Add** (Cmd/Ctrl+Shift+N): Capture tasks from anywhere, even when app is minimized
+- **Natural Language Input**: Type `Buy milk tomorrow @Shopping #groceries !high` and it just works
+  - `@ListName` or `@"List Name"` — assigns to list
+  - `#label` or `#"label name"` — adds label
+  - `!high`, `!medium`, `!low` (or `!p1`, `!p2`, `!p3`) — sets priority
+  - Natural dates: `today`, `tomorrow`, `next monday`, `jan 15`, `+3d`
+- **My Day View**: Focus on tasks due today
+- **Keyboard Shortcuts**: Full keyboard navigation (press `?` to see all shortcuts)
+
+### Cross-Platform
+- Windows, macOS, and Linux support via Electron
 
 ## Tech Stack
 
@@ -28,27 +39,33 @@ A desktop application for Google Tasks featuring a Kanban-style board interface 
 
 ```
 google-tasks-app/
-├── electron/              # Electron main process
-│   ├── main.ts           # App entry point
-│   ├── preload.ts        # IPC bridge
-│   └── ipc/              # IPC handlers (auth, tasks, storage)
-├── src/                  # React renderer process
-│   ├── components/       # React components
-│   │   ├── board/        # Board and list components
-│   │   ├── task/         # Task card and detail views
-│   │   ├── filters/      # Filter and sort controls
-│   │   ├── labels/       # Label management
-│   │   └── ui/           # Base UI components (shadcn)
-│   ├── services/         # Business logic
-│   │   ├── api/          # Google Tasks API client
-│   │   ├── sync/         # Sync engine
-│   │   └── storage/      # Local storage
-│   ├── stores/           # Zustand state stores
-│   ├── hooks/            # Custom React hooks
-│   ├── types/            # TypeScript definitions
-│   ├── utils/            # Utility functions
-│   └── constants/        # App constants
-└── config/               # Configuration files
+├── electron/                    # Electron main process
+│   ├── main.ts                 # App entry, global shortcuts
+│   ├── preload.ts              # Secure IPC bridge
+│   ├── quickAddWindow.ts       # Global quick-add window manager
+│   ├── ipc/                    # IPC handlers
+│   │   ├── auth.ts             # Google OAuth
+│   │   ├── tasks.ts            # Tasks API operations
+│   │   ├── storage.ts          # Key-value storage
+│   │   └── quickAdd.ts         # Quick-add window control
+│   └── utils/                  # Electron utilities
+├── src/                        # React renderer process
+│   ├── components/
+│   │   ├── board/              # Kanban board, task lists
+│   │   ├── task/               # Task cards, detail modal, quick-add
+│   │   ├── filters/            # Filter bar, search
+│   │   ├── labels/             # Label management
+│   │   ├── sidebar/            # Navigation, filter presets
+│   │   ├── layout/             # App shell, header
+│   │   ├── settings/           # Settings panel
+│   │   ├── common/             # Shared components (notifications, etc.)
+│   │   └── ui/                 # Base shadcn/ui components
+│   ├── stores/                 # Zustand state stores
+│   ├── hooks/                  # Custom React hooks
+│   ├── types/                  # TypeScript definitions
+│   ├── utils/                  # Utilities (dateParser, taskParser, etc.)
+│   └── constants/              # App constants
+└── config/                     # Build configuration
 ```
 
 ## Getting Started
@@ -153,23 +170,24 @@ This will:
 
 Uses Zustand for lightweight, modular state management:
 
-- `boardStore.ts` - Board and list state
-- `taskStore.ts` - Tasks and subtasks
-- `filterStore.ts` - Active filters and sort options
-- `labelStore.ts` - Label metadata
-- `authStore.ts` - Authentication state
-- `uiStore.ts` - UI state (modals, loading, etc.)
+- `authStore.ts` - Authentication state and Google OAuth
+- `taskStore.ts` - Tasks, task lists, and optimistic updates
+- `boardStore.ts` - Board layouts and organization
+- `filterStore.ts` - Active filters, sort options, and presets
+- `labelStore.ts` - Labels, priorities, and task metadata
+- `uiStore.ts` - Modals, theme, sidebar, notifications
+- `selectionStore.ts` - Multi-select and bulk operations
+- `navigationStore.ts` - Keyboard navigation focus tracking
 
 ### Data Flow
 
-1. **UI Actions** → Zustand stores → Service layer → IPC → Main process → Google Tasks API
-2. **Sync Engine** → Background polling → Update stores → Re-render UI
-
-### Offline Support
-
-- IndexedDB for local caching
-- Offline queue for pending changes
-- Conflict resolution when syncing
+1. User interacts with React UI
+2. Component calls Zustand store action
+3. Store updates state optimistically (instant UI feedback)
+4. Store calls `window.electronAPI.method()` via IPC
+5. Main process handler calls Google Tasks API
+6. Response updates store state (or rolls back on error)
+7. React components re-render via Zustand subscriptions
 
 ## Documentation
 
@@ -178,42 +196,32 @@ Uses Zustand for lightweight, modular state management:
 - **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** - Architecture and implementation details
 - **[test-auth.js](./test-auth.js)** - OAuth testing utilities
 
-## Next Steps for Development
+## Development Roadmap
 
-### Phase 1: Authentication & API Integration ✅ COMPLETED
-- [x] Implement Google OAuth flow in Electron
-- [x] Create Google Tasks API client
-- [x] Set up token refresh mechanism
-- [x] Build secure token storage
-- [x] Implement IPC handlers for auth and tasks
+### Completed
 
-### Phase 2: Core UI
-- [ ] Build Kanban board layout
-- [ ] Create task list component
-- [ ] Implement task card component
-- [ ] Add drag-and-drop with @dnd-kit
-- [ ] Create task detail modal
+**Phase 1 — Quick Wins** ✅
+- Comprehensive keyboard shortcuts with help modal (`?`)
+- "My Day" focus view for tasks due today
+- Natural language date parsing in task inputs
 
-### Phase 3: Filtering & Sorting
-- [ ] Build filter toolbar
-- [ ] Implement search functionality
-- [ ] Add date range filtering
-- [ ] Create sort dropdown
-- [ ] Build label filter
+**Phase 2 — Capture & Workflow** ✅
+- Global quick-add shortcut (Cmd/Ctrl+Shift+N)
+- Full natural language input (@list, #label, !priority, dates)
+- Parsed token preview with removable chips
 
-### Phase 4: Labels & Customization
-- [ ] Create label management UI
-- [ ] Implement label picker
-- [ ] Add color customization
-- [ ] Build label filter logic
+### Upcoming
 
-### Phase 5: Advanced Features
-- [ ] Multiple boards support
-- [ ] Keyboard shortcuts
-- [ ] Settings panel
-- [ ] Background sync
-- [ ] Offline mode
-- [ ] Export/import
+**Phase 3 — Views & Visualization**
+- Task templates for recurring workflows
+- Calendar view with drag-to-reschedule
+- Eisenhower Matrix (4-quadrant priority grid)
+- Google Calendar integration
+
+**Phase 4 — Power Features**
+- Pomodoro timer integration
+- Offline support with local database
+- AI task breakdown (subtask suggestions)
 
 ## API Integration
 

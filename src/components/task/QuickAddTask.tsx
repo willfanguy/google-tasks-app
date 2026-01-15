@@ -4,7 +4,7 @@
  * Triggered by the floating action button
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Check, Flag } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -12,13 +12,15 @@ import { useLabelStore } from '../../stores/labelStore';
 import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { logger } from '../../utils/logger';
 import { getColorClasses } from '../../utils/colorClasses';
+import { parseTaskInput, ParsedToken } from '../../utils/taskParser';
 import LabelPickerDropdown from '../common/LabelPickerDropdown';
 import SmartDateInput from '../common/SmartDateInput';
+import ParsedTaskPreview from '../common/ParsedTaskPreview';
 
 export default function QuickAddTask() {
   const { modals, closeQuickAdd, selectedListId, parentTaskId } = useUIStore();
   const { taskLists, createTask, getTaskById } = useTaskStore();
-  const { labels, getLabelById, setTaskPriority } = useLabelStore();
+  const { labels, getLabelById, getLabelByName, setTaskPriority } = useLabelStore();
 
   const [listId, setListId] = useState('');
   const [title, setTitle] = useState('');
@@ -28,6 +30,16 @@ export default function QuickAddTask() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Parse title for natural language tokens
+  const parsed = useMemo(() => parseTaskInput(title), [title]);
+
+  // Handle removing a parsed token from title
+  const handleRemoveToken = (token: ParsedToken) => {
+    // Remove the raw token from the title
+    const newTitle = title.replace(token.raw, '').replace(/\s+/g, ' ').trim();
+    setTitle(newTitle);
+  };
 
   // Set default list when modal opens (use selectedListId if available)
   useEffect(() => {
@@ -60,7 +72,9 @@ export default function QuickAddTask() {
   };
 
   const handleCreate = async () => {
-    if (!title.trim() || !listId) {
+    // Use parsed title (with tokens removed) or fall back to raw title
+    const finalTitle = parsed.title || title.trim();
+    if (!finalTitle || !listId) {
       return;
     }
 
@@ -68,26 +82,53 @@ export default function QuickAddTask() {
     setIsSubmitting(true);
 
     try {
-      // Convert YYYY-MM-DD to RFC 3339 timestamp at midnight UTC
+      // Determine the target list - use parsed @list if specified
+      let targetListId = listId;
+      if (parsed.listName) {
+        const matchingList = taskLists.find(
+          l => l.title.toLowerCase() === parsed.listName!.toLowerCase()
+        );
+        if (matchingList) {
+          targetListId = matchingList.id;
+          logger.log(`[QuickAddTask] Using parsed list: ${matchingList.title}`);
+        }
+      }
+
+      // Determine due date - prefer parsed date, then manual date picker
       let dueISO: string | undefined = undefined;
-      if (dueDate) {
-        const [year, month, day] = dueDate.split('-').map(Number);
+      const effectiveDueDate = parsed.dateFormatted || dueDate;
+      if (effectiveDueDate) {
+        const [year, month, day] = effectiveDueDate.split('-').map(Number);
         const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
         dueISO = utcDate.toISOString();
       }
 
-      const newTask = await createTask(listId, {
-        title: title.trim(),
+      // Merge parsed labels with manually selected labels
+      const parsedLabelIds: string[] = [];
+      for (const labelName of parsed.labels) {
+        const existingLabel = getLabelByName(labelName);
+        if (existingLabel) {
+          parsedLabelIds.push(existingLabel.id);
+        }
+        // Note: We don't auto-create labels - user must create them first
+      }
+      const allLabelIds = [...new Set([...selectedLabels, ...parsedLabelIds])];
+
+      // Determine priority - prefer parsed priority, then manual selection
+      const effectivePriority = parsed.priority ?? priority;
+
+      const newTask = await createTask(targetListId, {
+        title: finalTitle,
         notes: notes.trim() || undefined,
         due: dueISO,
         status,
-        labels: selectedLabels,
+        labels: allLabelIds,
         parent: parentTaskId || undefined,
       });
 
       // Set priority after task is created
-      if (priority && newTask) {
-        setTaskPriority(newTask.id, priority);
+      if (effectivePriority && newTask) {
+        setTaskPriority(newTask.id, effectivePriority);
       }
 
       handleClose();
@@ -184,8 +225,22 @@ export default function QuickAddTask() {
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
               className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-              placeholder="Task title..."
+              placeholder="Task title... (try @list #label !high tomorrow)"
             />
+            {/* Parsed tokens preview */}
+            {parsed.tokens.length > 0 && (
+              <div className="mt-2">
+                <ParsedTaskPreview
+                  parsed={parsed}
+                  onRemoveToken={handleRemoveToken}
+                />
+                {parsed.title && (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Task: "{parsed.title}"
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Notes */}

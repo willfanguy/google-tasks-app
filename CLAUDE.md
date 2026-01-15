@@ -61,6 +61,15 @@ Located in `electron/ipc/`:
 - **auth.ts** - Google OAuth flow, token management, token refresh
 - **tasks.ts** - All Google Tasks API operations (CRUD for tasks and task lists)
 - **storage.ts** - Key-value storage for app data
+- **quickAdd.ts** - Global quick-add window show/hide/toggle
+
+### Global Quick-Add Window
+
+`electron/quickAddWindow.ts` manages a floating window for task capture:
+- Triggered by global shortcut `Cmd/Ctrl+Shift+N` (works when app is minimized)
+- Frameless, always-on-top, hides on blur
+- Loads hash route `#/quick-add` which renders `GlobalQuickAdd` component
+- Window is reused (hidden, not destroyed) for fast re-shows
 
 ### State Management (Zustand)
 
@@ -70,8 +79,10 @@ All stores in `src/stores/` with full TypeScript types:
 - **taskStore.ts** - Tasks and task lists with optimistic updates and API integration
 - **boardStore.ts** - Board/list organization and layouts (persisted to localStorage)
 - **filterStore.ts** - Search, filters, sorting, and filter presets (persisted)
-- **labelStore.ts** - Custom labels for tasks (local metadata, persisted)
+- **labelStore.ts** - Custom labels and priorities for tasks (local metadata, persisted)
 - **uiStore.ts** - Modals, notifications, theme, sidebar state, loading states (persisted)
+- **selectionStore.ts** - Multi-select mode and bulk task operations
+- **navigationStore.ts** - Keyboard navigation focus tracking
 
 **Key Patterns**:
 - Optimistic updates in taskStore: Update UI immediately, rollback on API failure

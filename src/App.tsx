@@ -3,7 +3,7 @@
  * Entry point with authentication check and main layout
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from './stores/authStore';
 import { useUIStore } from './stores/uiStore';
 import Layout from './components/layout/Layout';
@@ -17,11 +17,27 @@ import LabelManager from './components/labels/LabelManager';
 import Settings from './components/settings/Settings';
 import Notifications from './components/common/Notifications';
 import KeyboardShortcutsHelp from './components/common/KeyboardShortcutsHelp';
+import GlobalQuickAdd from './components/task/GlobalQuickAdd';
 import { logger } from './utils/logger';
 
 function App() {
   const { authenticated, loading, login, checkAuth } = useAuthStore();
   const { theme, viewMode } = useUIStore();
+
+  // Track if we're in quick-add mode (hash route)
+  const [isQuickAddMode, setIsQuickAddMode] = useState(() =>
+    window.location.hash === '#/quick-add'
+  );
+
+  // Listen for hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      setIsQuickAddMode(window.location.hash === '#/quick-add');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Check authentication on mount
   useEffect(() => {
@@ -55,6 +71,12 @@ function App() {
       root.classList.add(theme);
     }
   }, [theme]);
+
+  // Quick Add Mode - minimal floating window UI
+  if (isQuickAddMode) {
+    // Still need to apply theme in quick add mode
+    return <GlobalQuickAdd />;
+  }
 
   // Show loading state
   if (loading) {

@@ -44,6 +44,11 @@ export interface ElectronAPI {
   getStore: <T = unknown>(key: string) => Promise<GetStoreResponse<T>>;
   setStore: (key: string, value: unknown) => Promise<SetStoreResponse>;
   deleteStore: (key: string) => Promise<DeleteStoreResponse>;
+
+  // Quick Add window methods
+  quickAddHide: () => Promise<{ success: boolean; error?: string }>;
+  quickAddShow: () => Promise<{ success: boolean; error?: string }>;
+  quickAddToggle: () => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

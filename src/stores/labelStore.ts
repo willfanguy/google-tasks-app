@@ -33,6 +33,7 @@ interface LabelState {
   // Getters
   getTaskLabels: (taskId: string) => string[];
   getLabelById: (id: string) => Label | undefined;
+  getLabelByName: (name: string) => Label | undefined;
   getTasksWithLabel: (labelId: string) => string[];
   getSortedLabels: () => Label[];
 }
@@ -220,6 +221,14 @@ export const useLabelStore = create<LabelState>()(
        */
       getLabelById: (id: string) => {
         return get().labels.find((l) => l.id === id);
+      },
+
+      /**
+       * Gets a label by name (case-insensitive)
+       */
+      getLabelByName: (name: string) => {
+        const lowerName = name.toLowerCase();
+        return get().labels.find((l) => l.name.toLowerCase() === lowerName);
       },
 
       /**

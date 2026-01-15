@@ -55,6 +55,14 @@ const api = {
   setStore: (key: string, value: unknown): Promise<SetStoreResponse> =>
     ipcRenderer.invoke('set-store', key, value),
   deleteStore: (key: string): Promise<DeleteStoreResponse> => ipcRenderer.invoke('delete-store', key),
+
+  // Quick Add Window
+  quickAddHide: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('quick-add:hide'),
+  quickAddShow: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('quick-add:show'),
+  quickAddToggle: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('quick-add:toggle'),
 };
 
 // Expose the API in both electronAPI and electron namespaces
