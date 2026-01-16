@@ -4,12 +4,15 @@
  * and applies JIRA metadata as labels/priorities to tasks
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useLabelStore } from '../stores/labelStore';
 import { logger } from '../utils/logger';
 import type { SyncData } from '../types/ipc';
 import type { LabelColor } from '../types/label';
 import type { Priority } from '../types/priority';
+
+// JIRA types to skip creating labels for (we don't need these as labels)
+const SKIP_JIRA_TYPES = new Set(['Task', 'Design Story', 'Story']);
 
 // Color mapping for JIRA statuses
 const STATUS_COLORS: Record<string, LabelColor> = {
@@ -17,7 +20,7 @@ const STATUS_COLORS: Record<string, LabelColor> = {
   'In Progress': '#f97316', // orange
   'In Development': '#f97316', // orange
   'In Review': '#f59e0b', // amber
-  'In QA': '#eab308', // yellow
+  'In QA': '#f97316', // orange
   'Code Review': '#f59e0b', // amber
 
   // Done states - cool colors
@@ -33,9 +36,12 @@ const STATUS_COLORS: Record<string, LabelColor> = {
 
   // Todo/backlog states
   'To Do': '#3b82f6', // blue
-  Backlog: '#6366f1', // indigo
+  Backlog: '#64748b', // gray (slate)
   Open: '#3b82f6', // blue
   New: '#0ea5e9', // sky
+
+  // JIRA types
+  Bug: '#ef4444', // red
 };
 
 // Default color for unknown statuses
@@ -62,6 +68,11 @@ export function useExternalSync() {
     setTaskPriority,
   } = useLabelStore();
 
+  // Track last processed sync to prevent redundant processing
+  const lastProcessedSyncRef = useRef<string | null>(null);
+  // Track if listener is already set up (prevents double setup in StrictMode)
+  const listenerSetupRef = useRef(false);
+
   /**
    * Get or create a label for a JIRA status
    */
@@ -87,6 +98,16 @@ export function useExternalSync() {
    */
   const processSyncData = useCallback(
     (data: SyncData) => {
+      // Create a fingerprint of the sync data to detect duplicates
+      const syncFingerprint = data.lastSync || JSON.stringify(Object.keys(data.tasks).sort());
+
+      // Skip if we've already processed this exact sync data
+      if (lastProcessedSyncRef.current === syncFingerprint) {
+        logger.log('[ExternalSync] Skipping duplicate sync data');
+        return;
+      }
+      lastProcessedSyncRef.current = syncFingerprint;
+
       logger.log('[ExternalSync] Processing sync data, tasks:', Object.keys(data.tasks).length);
 
       for (const [taskId, metadata] of Object.entries(data.tasks)) {
@@ -98,8 +119,8 @@ export function useExternalSync() {
           labelIds.push(statusLabelId);
         }
 
-        // Add JIRA type as a label (Story, Bug, Task, etc.)
-        if (metadata.jiraType) {
+        // Add JIRA type as a label (Bug, etc.) - skip generic types like Task/Story
+        if (metadata.jiraType && !SKIP_JIRA_TYPES.has(metadata.jiraType)) {
           const typeLabelId = getOrCreateStatusLabel(metadata.jiraType);
           labelIds.push(typeLabelId);
         }
@@ -136,6 +157,13 @@ export function useExternalSync() {
       return;
     }
 
+    // Prevent double setup in React StrictMode
+    if (listenerSetupRef.current) {
+      logger.log('[ExternalSync] Listener already set up, skipping');
+      return;
+    }
+    listenerSetupRef.current = true;
+
     logger.log('[ExternalSync] Setting up external sync listener');
 
     // Listen for sync updates from main process
@@ -152,6 +180,9 @@ export function useExternalSync() {
       }
     });
 
-    return cleanup;
+    return () => {
+      listenerSetupRef.current = false;
+      cleanup();
+    };
   }, [processSyncData]);
 }
