@@ -109,7 +109,7 @@ export default function SortBar() {
   };
 
   return (
-    <div className="h-14 border-b border-border bg-card flex items-center gap-3 px-4 flex-shrink-0">
+    <div className="min-h-14 py-2 border-b border-border bg-card flex flex-wrap items-center gap-3 px-4 flex-shrink-0">
       {/* No sorting state */}
       {!sortsActive && (
         <div className="text-sm text-muted-foreground">
