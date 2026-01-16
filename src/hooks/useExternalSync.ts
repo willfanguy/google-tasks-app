@@ -37,7 +37,7 @@ const STATUS_COLORS: Record<string, LabelColor> = {
   // Todo/backlog states
   'To Do': '#3b82f6', // blue
   Backlog: '#64748b', // gray (slate)
-  Open: '#3b82f6', // blue
+  Open: '#22c55e', // green (used for active work)
   New: '#0ea5e9', // sky
 
   // JIRA types
