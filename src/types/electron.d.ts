@@ -18,6 +18,9 @@ import {
   DeleteStoreResponse,
   TaskData,
   MoveTaskData,
+  SyncDataResponse,
+  SyncFilePathResponse,
+  SyncData,
 } from './ipc';
 
 export interface ElectronAPI {
@@ -49,6 +52,11 @@ export interface ElectronAPI {
   quickAddHide: () => Promise<{ success: boolean; error?: string }>;
   quickAddShow: () => Promise<{ success: boolean; error?: string }>;
   quickAddToggle: () => Promise<{ success: boolean; error?: string }>;
+
+  // External Sync methods
+  getSyncData: () => Promise<SyncDataResponse>;
+  getSyncFilePath: () => Promise<SyncFilePathResponse>;
+  onExternalSyncUpdate: (callback: (data: SyncData) => void) => () => void;
 }
 
 declare global {

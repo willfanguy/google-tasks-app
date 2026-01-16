@@ -65,3 +65,24 @@ export interface MoveTaskData {
   parent?: string;
   previous?: string;
 }
+
+// External sync types (from ~/.google-tasks-sync/metadata.json)
+export interface SyncTaskMetadata {
+  jiraKey?: string;
+  jiraStatus?: string;
+  jiraType?: string;
+  jiraPriority?: string;
+  sprint?: string;
+  labels?: string[];
+  priority?: 'high' | 'medium' | 'low';
+  dueDate?: string;
+  lastSynced?: string;
+}
+
+export interface SyncData {
+  lastSync: string | null;
+  tasks: Record<string, SyncTaskMetadata>;
+}
+
+export type SyncDataResponse = IPCResponse<SyncData>;
+export type SyncFilePathResponse = IPCResponse<string>;

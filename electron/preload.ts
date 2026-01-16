@@ -17,6 +17,8 @@ import type {
   TaskData,
   UpdateTaskListResponse,
   UpdateTaskResponse,
+  SyncDataResponse,
+  SyncFilePathResponse,
 } from '../src/types/ipc';
 
 // Expose protected methods that allow the renderer process to use
@@ -63,6 +65,16 @@ const api = {
     ipcRenderer.invoke('quick-add:show'),
   quickAddToggle: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('quick-add:toggle'),
+
+  // External Sync
+  getSyncData: (): Promise<SyncDataResponse> => ipcRenderer.invoke('get-sync-data'),
+  getSyncFilePath: (): Promise<SyncFilePathResponse> => ipcRenderer.invoke('get-sync-file-path'),
+  onExternalSyncUpdate: (callback: (data: unknown) => void): (() => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('external-sync-update', handler);
+    // Return cleanup function
+    return () => ipcRenderer.removeListener('external-sync-update', handler);
+  },
 };
 
 // Expose the API in both electronAPI and electron namespaces

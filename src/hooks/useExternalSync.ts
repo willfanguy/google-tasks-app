@@ -1,0 +1,157 @@
+/**
+ * External Sync Hook
+ * Listens for sync updates from external tools (like Claude's todo-sync-processor)
+ * and applies JIRA metadata as labels/priorities to tasks
+ */
+
+import { useEffect, useCallback } from 'react';
+import { useLabelStore } from '../stores/labelStore';
+import { logger } from '../utils/logger';
+import type { SyncData } from '../types/ipc';
+import type { LabelColor } from '../types/label';
+import type { Priority } from '../types/priority';
+
+// Color mapping for JIRA statuses
+const STATUS_COLORS: Record<string, LabelColor> = {
+  // Active work states - warm colors
+  'In Progress': '#f97316', // orange
+  'In Development': '#f97316', // orange
+  'In Review': '#f59e0b', // amber
+  'In QA': '#eab308', // yellow
+  'Code Review': '#f59e0b', // amber
+
+  // Done states - cool colors
+  Done: '#22c55e', // green
+  Closed: '#22c55e', // green
+  Released: '#10b981', // emerald
+  Resolved: '#22c55e', // green
+
+  // Waiting/blocked states
+  Blocked: '#ef4444', // red
+  'On Hold': '#64748b', // slate
+  Waiting: '#64748b', // slate
+
+  // Todo/backlog states
+  'To Do': '#3b82f6', // blue
+  Backlog: '#6366f1', // indigo
+  Open: '#3b82f6', // blue
+  New: '#0ea5e9', // sky
+};
+
+// Default color for unknown statuses
+const DEFAULT_STATUS_COLOR: LabelColor = '#8b5cf6'; // violet
+
+// Map JIRA priority to app priority
+function mapJiraPriority(jiraPriority?: string): Priority | undefined {
+  if (!jiraPriority) return undefined;
+
+  const lower = jiraPriority.toLowerCase();
+  if (lower === 'highest' || lower === 'critical' || lower === 'blocker') return 'high';
+  if (lower === 'high') return 'high';
+  if (lower === 'medium' || lower === 'normal') return 'medium';
+  if (lower === 'low' || lower === 'lowest' || lower === 'minor' || lower === 'trivial') return 'low';
+
+  return undefined;
+}
+
+export function useExternalSync() {
+  const {
+    createLabel,
+    getLabelByName,
+    setTaskLabels,
+    setTaskPriority,
+  } = useLabelStore();
+
+  /**
+   * Get or create a label for a JIRA status
+   */
+  const getOrCreateStatusLabel = useCallback(
+    (status: string): string => {
+      // Check if label already exists
+      const existing = getLabelByName(status);
+      if (existing) {
+        return existing.id;
+      }
+
+      // Create new label with appropriate color
+      const color = STATUS_COLORS[status] || DEFAULT_STATUS_COLOR;
+      const newLabel = createLabel(status, color);
+      logger.log('[ExternalSync] Created label for status:', status, 'with color:', color);
+      return newLabel.id;
+    },
+    [getLabelByName, createLabel]
+  );
+
+  /**
+   * Process sync data and apply labels/priorities to tasks
+   */
+  const processSyncData = useCallback(
+    (data: SyncData) => {
+      logger.log('[ExternalSync] Processing sync data, tasks:', Object.keys(data.tasks).length);
+
+      for (const [taskId, metadata] of Object.entries(data.tasks)) {
+        const labelIds: string[] = [];
+
+        // Add JIRA status as a label
+        if (metadata.jiraStatus) {
+          const statusLabelId = getOrCreateStatusLabel(metadata.jiraStatus);
+          labelIds.push(statusLabelId);
+        }
+
+        // Add JIRA type as a label (Story, Bug, Task, etc.)
+        if (metadata.jiraType) {
+          const typeLabelId = getOrCreateStatusLabel(metadata.jiraType);
+          labelIds.push(typeLabelId);
+        }
+
+        // Add any explicit labels from sync data
+        if (metadata.labels && metadata.labels.length > 0) {
+          for (const labelName of metadata.labels) {
+            const labelId = getOrCreateStatusLabel(labelName);
+            labelIds.push(labelId);
+          }
+        }
+
+        // Apply labels to task
+        if (labelIds.length > 0) {
+          setTaskLabels(taskId, labelIds);
+          logger.log('[ExternalSync] Applied labels to task:', taskId, labelIds);
+        }
+
+        // Apply priority from JIRA or explicit priority
+        const priority = metadata.priority || mapJiraPriority(metadata.jiraPriority);
+        if (priority) {
+          setTaskPriority(taskId, priority);
+          logger.log('[ExternalSync] Applied priority to task:', taskId, priority);
+        }
+      }
+    },
+    [getOrCreateStatusLabel, setTaskLabels, setTaskPriority]
+  );
+
+  useEffect(() => {
+    // Check if we're running in Electron
+    if (!window.electronAPI?.onExternalSyncUpdate) {
+      logger.log('[ExternalSync] Not running in Electron, skipping sync listener');
+      return;
+    }
+
+    logger.log('[ExternalSync] Setting up external sync listener');
+
+    // Listen for sync updates from main process
+    const cleanup = window.electronAPI.onExternalSyncUpdate((data: unknown) => {
+      logger.log('[ExternalSync] Received sync update');
+      processSyncData(data as SyncData);
+    });
+
+    // Also fetch initial sync data
+    window.electronAPI.getSyncData?.().then((response) => {
+      if (response.success && response.data && Object.keys(response.data.tasks).length > 0) {
+        logger.log('[ExternalSync] Processing initial sync data');
+        processSyncData(response.data);
+      }
+    });
+
+    return cleanup;
+  }, [processSyncData]);
+}

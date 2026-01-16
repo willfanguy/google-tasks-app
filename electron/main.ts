@@ -10,7 +10,9 @@ import { setupAuthHandlers } from './ipc/auth';
 import { setupStorageHandlers } from './ipc/storage';
 import { setupTaskHandlers } from './ipc/tasks';
 import { setupQuickAddHandlers } from './ipc/quickAdd';
+import { setupSyncHandlers } from './ipc/sync';
 import { createQuickAddWindow, destroyQuickAddWindow } from './quickAddWindow';
+import { startSyncWatcher, stopSyncWatcher } from './utils/syncWatcher';
 import { logger } from './utils/logger';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -36,6 +38,10 @@ const createWindow = (): void => {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show();
+    // Start watching for external sync updates
+    if (mainWindow) {
+      startSyncWatcher(mainWindow);
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -58,6 +64,9 @@ const initializeHandlers = (): void => {
 
   // Setup quick add handlers
   setupQuickAddHandlers();
+
+  // Setup sync handlers
+  setupSyncHandlers();
 
   logger.log('[Main] IPC handlers initialized successfully');
 };
@@ -97,6 +106,9 @@ app.on('will-quit', () => {
   // Unregister all global shortcuts
   globalShortcut.unregisterAll();
   logger.log('[Main] Global shortcuts unregistered');
+
+  // Stop sync watcher
+  stopSyncWatcher();
 
   // Destroy quick add window if it exists
   destroyQuickAddWindow();

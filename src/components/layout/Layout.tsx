@@ -12,6 +12,7 @@ import BulkEditToolbar from '../filters/BulkEditToolbar';
 import { useUIStore } from '../../stores/uiStore';
 import UnifiedListView from '../board/UnifiedListView';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useExternalSync } from '../../hooks/useExternalSync';
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,6 +23,9 @@ export default function Layout({ children }: LayoutProps) {
 
   // Enable keyboard shortcuts
   useKeyboardShortcuts();
+
+  // Enable external sync (JIRA -> labels/priorities)
+  useExternalSync();
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
