@@ -62,6 +62,7 @@ Located in `electron/ipc/`:
 - **tasks.ts** - All Google Tasks API operations (CRUD for tasks and task lists)
 - **storage.ts** - Key-value storage for app data
 - **quickAdd.ts** - Global quick-add window show/hide/toggle
+- **sync.ts** - External sync file data and path retrieval
 
 ### Global Quick-Add Window
 
@@ -70,6 +71,38 @@ Located in `electron/ipc/`:
 - Frameless, always-on-top, hides on blur
 - Loads hash route `#/quick-add` which renders `GlobalQuickAdd` component
 - Window is reused (hidden, not destroyed) for fast re-shows
+
+### External Sync
+
+The app watches `~/.google-tasks-sync/metadata.json` for updates from external tools (e.g., a JIRA sync processor). This enables one-way sync of task metadata without the external tool needing to know about this app's internals.
+
+**Components:**
+- `electron/utils/syncWatcher.ts` - Watches the sync file and pushes updates to renderer
+- `electron/ipc/sync.ts` - IPC handlers for `getSyncData` and `getSyncFilePath`
+- `src/hooks/useExternalSync.ts` - Processes sync data and applies labels/priorities
+
+**Sync file format:**
+```json
+{
+  "lastSync": "2026-01-16T12:00:00Z",
+  "tasks": {
+    "<google-task-id>": {
+      "jiraKey": "PROJ-123",
+      "jiraStatus": "In Progress",
+      "jiraType": "Story",
+      "jiraPriority": "High",
+      "labels": ["optional", "extra", "labels"],
+      "priority": "high"
+    }
+  }
+}
+```
+
+**Behavior:**
+- JIRA statuses become color-coded labels (orange="In Progress", green="Done", red="Blocked", etc.)
+- JIRA types (Story, Bug, Task) become labels
+- JIRA priorities map to app priorities (Highest/Critical/Blocker → high, Medium/Normal → medium, Low/Minor → low)
+- File changes trigger immediate updates via IPC `external-sync-update` event
 
 ### State Management (Zustand)
 
