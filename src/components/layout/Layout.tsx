@@ -1,11 +1,10 @@
 /**
  * Layout Component
- * Main app layout with header, sidebar, and content area
+ * Main app layout with header and content area
  */
 
 import { ReactNode } from 'react';
 import Header from './Header';
-import Sidebar from '../sidebar/Sidebar';
 import FilterBar from '../filters/FilterBar';
 import BulkEditToolbar from '../filters/BulkEditToolbar';
 import { useUIStore } from '../../stores/uiStore';
@@ -31,25 +30,19 @@ export default function Layout({ children }: LayoutProps) {
       {/* Header */}
       <Header />
 
-      {/* Main content area with sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
+      {/* Main content area */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Filter bar */}
+        <FilterBar />
 
-        {/* Content area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Filter bar */}
-          <FilterBar />
+        {/* Bulk edit toolbar */}
+        <BulkEditToolbar />
 
-          {/* Bulk edit toolbar */}
-          <BulkEditToolbar />
-
-          {/* View content - either board or list */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {viewMode === 'list' ? <UnifiedListView /> : children}
-          </div>
-        </main>
-      </div>
+        {/* View content - either board or list */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {viewMode === 'list' ? <UnifiedListView /> : children}
+        </div>
+      </main>
     </div>
   );
 }

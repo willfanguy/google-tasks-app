@@ -6,6 +6,7 @@
 import { Search, LayoutGrid, List, X } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useUIStore } from '../../stores/uiStore';
+import ViewsPopover from './ViewsPopover';
 import FilterPopover from './FilterPopover';
 import SortPopover from './SortPopover';
 
@@ -73,6 +74,9 @@ export default function FilterBar() {
           className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
         />
       </div>
+
+      {/* Views popover */}
+      <ViewsPopover />
 
       {/* Filter popover */}
       <FilterPopover />

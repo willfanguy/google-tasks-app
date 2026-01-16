@@ -148,7 +148,7 @@ export default function UnifiedListView() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex-1 overflow-y-auto py-4 px-6">
       <div className="max-w-4xl mx-auto">
         {/* Compact header */}
         <div className="flex items-center gap-2 mb-3">
