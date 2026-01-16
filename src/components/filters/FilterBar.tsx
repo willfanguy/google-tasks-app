@@ -1,29 +1,27 @@
 /**
  * FilterBar Component
- * Compact toolbar with search, filter popover, and sort popover
+ * Toolbar with view toggle, views/filters/sort popovers, and task actions
  */
 
-import { Search, LayoutGrid, List, X } from 'lucide-react';
+import { X, RefreshCw, Tag, CheckCheck, LayoutGrid, List } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useUIStore } from '../../stores/uiStore';
+import { useTaskStore } from '../../stores/taskStore';
+import { useSelectionStore } from '../../stores/selectionStore';
 import ViewsPopover from './ViewsPopover';
 import FilterPopover from './FilterPopover';
 import SortPopover from './SortPopover';
 
 export default function FilterBar() {
   const {
-    activeFilters,
-    setSearchQuery,
     clearFilters,
     clearSortOptions,
     hasActiveFilters,
     hasActiveSorts,
   } = useFilterStore();
-  const { viewMode, setViewMode } = useUIStore();
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
+  const { viewMode, setViewMode, openLabelManager } = useUIStore();
+  const { syncAll, loading } = useTaskStore();
+  const { isSelectionMode, exitSelectionMode, enterSelectionMode } = useSelectionStore();
 
   const filtersActive = hasActiveFilters();
   const sortsActive = hasActiveSorts();
@@ -34,46 +32,48 @@ export default function FilterBar() {
     clearSortOptions();
   };
 
+  const handleSync = async () => {
+    await syncAll();
+  };
+
+  const handleToggleSelectionMode = () => {
+    if (isSelectionMode) {
+      exitSelectionMode();
+    } else {
+      enterSelectionMode();
+    }
+  };
+
   return (
-    <div className="h-14 border-b border-border bg-card flex items-center gap-3 px-4 flex-shrink-0">
+    <div className="h-12 border-b border-border bg-card flex items-center gap-2 px-4 flex-shrink-0">
       {/* View mode toggle */}
-      <div className="flex items-center gap-1 bg-accent rounded-lg p-1">
+      <div className="flex items-center rounded-lg border border-border overflow-hidden">
         <button
+          type="button"
           onClick={() => setViewMode('board')}
-          className={`p-2 rounded transition-colors ${
-            viewMode === 'board'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-accent-foreground hover:text-accent-foreground/80'
+          className={`px-2.5 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+            viewMode === 'board' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
           }`}
-          title="Board View"
+          title="Board view"
         >
           <LayoutGrid className="w-4 h-4" />
+          <span className="hidden sm:inline text-xs">Board</span>
         </button>
         <button
+          type="button"
           onClick={() => setViewMode('list')}
-          className={`p-2 rounded transition-colors ${
-            viewMode === 'list'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-accent-foreground hover:text-accent-foreground/80'
+          className={`px-2.5 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+            viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
           }`}
-          title="List View"
+          title="List view"
         >
           <List className="w-4 h-4" />
+          <span className="hidden sm:inline text-xs">List</span>
         </button>
       </div>
 
-      {/* Search input */}
-      <div className="flex-1 max-w-md relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          id="search-input"
-          type="text"
-          placeholder="Search tasks..."
-          value={activeFilters.search}
-          onChange={handleSearchChange}
-          className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
-        />
-      </div>
+      {/* Divider */}
+      <div className="w-px h-6 bg-border" />
 
       {/* Views popover */}
       <ViewsPopover />
@@ -88,13 +88,52 @@ export default function FilterBar() {
       {hasAnythingActive && (
         <button
           onClick={handleClearAll}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
           title="Clear all filters and sorts"
         >
           <X className="w-4 h-4" />
-          <span>Clear</span>
+          <span className="hidden sm:inline text-xs">Clear</span>
         </button>
       )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Sync button */}
+      <button
+        onClick={handleSync}
+        disabled={loading}
+        className="p-1.5 rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Sync with Google Tasks"
+        aria-label="Sync with Google Tasks"
+      >
+        <RefreshCw className={`w-4 h-4 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
+      </button>
+
+      {/* Selection mode toggle */}
+      <button
+        onClick={handleToggleSelectionMode}
+        className={`p-1.5 rounded-lg transition-colors ${
+          isSelectionMode
+            ? 'bg-primary text-primary-foreground'
+            : 'hover:bg-accent'
+        }`}
+        title={isSelectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+        aria-label={isSelectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+        aria-pressed={isSelectionMode}
+      >
+        <CheckCheck className={`w-4 h-4 ${isSelectionMode ? '' : 'text-muted-foreground'}`} />
+      </button>
+
+      {/* Labels button */}
+      <button
+        onClick={openLabelManager}
+        className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+        title="Manage Labels"
+        aria-label="Manage Labels"
+      >
+        <Tag className="w-4 h-4 text-muted-foreground" />
+      </button>
     </div>
   );
 }
