@@ -1,62 +1,40 @@
 /**
  * FilterBar Component
- * Search, filter, and sort controls for tasks
+ * Compact toolbar with search, filter popover, and sort popover
  */
 
-import { Search, Filter, X, LayoutGrid, List, Flag } from 'lucide-react';
+import { Search, LayoutGrid, List, X } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
-import { useLabelStore } from '../../stores/labelStore';
 import { useUIStore } from '../../stores/uiStore';
-import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
-import { logger } from '../../utils/logger';
-import LabelPickerDropdown from '../common/LabelPickerDropdown';
+import FilterPopover from './FilterPopover';
+import SortPopover from './SortPopover';
 
 export default function FilterBar() {
   const {
     activeFilters,
     setSearchQuery,
-    setStatusFilter,
-    setPriorityFilter,
-    toggleLabelFilter,
-    toggleExcludeLabelFilter,
     clearFilters,
+    clearSortOptions,
     hasActiveFilters,
+    hasActiveSorts,
   } = useFilterStore();
-  const { getSortedLabels } = useLabelStore();
-  const labels = getSortedLabels();
   const { viewMode, setViewMode } = useUIStore();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === 'all') {
-      setStatusFilter(undefined);
-    } else {
-      setStatusFilter(value as 'needsAction' | 'completed');
-    }
-  };
-
-  const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === 'all') {
-      setPriorityFilter(undefined);
-    } else {
-      setPriorityFilter(value as Priority);
-    }
-  };
-
-  const handleClearFilters = () => {
-    logger.log('[FilterBar] Clearing filters');
-    clearFilters();
-  };
-
   const filtersActive = hasActiveFilters();
+  const sortsActive = hasActiveSorts();
+  const hasAnythingActive = filtersActive || sortsActive;
+
+  const handleClearAll = () => {
+    clearFilters();
+    clearSortOptions();
+  };
 
   return (
-    <div className="min-h-14 py-2 border-b border-border bg-card flex flex-wrap items-center gap-3 px-4 flex-shrink-0">
+    <div className="h-14 border-b border-border bg-card flex items-center gap-3 px-4 flex-shrink-0">
       {/* View mode toggle */}
       <div className="flex items-center gap-1 bg-accent rounded-lg p-1">
         <button
@@ -96,77 +74,22 @@ export default function FilterBar() {
         />
       </div>
 
-      {/* Status filter */}
-      <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-muted-foreground" />
-        <select
-          value={activeFilters.status || 'all'}
-          onChange={handleStatusChange}
-          className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-        >
-          <option value="all">All Tasks</option>
-          <option value="needsAction">Active</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
+      {/* Filter popover */}
+      <FilterPopover />
 
-      {/* Priority filter */}
-      <div className="flex items-center gap-2">
-        <Flag
-          className="w-4 h-4"
-          style={{ color: activeFilters.priority ? PRIORITY_LEVELS[activeFilters.priority].color : undefined }}
-        />
-        <select
-          value={activeFilters.priority || 'all'}
-          onChange={handlePriorityChange}
-          className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-          style={{
-            color: activeFilters.priority ? PRIORITY_LEVELS[activeFilters.priority].color : undefined,
-            fontWeight: activeFilters.priority ? '600' : undefined
-          }}
-        >
-          <option value="all">All Priorities</option>
-          {PRIORITY_OPTIONS.map((p) => (
-            <option key={p} value={p}>
-              {PRIORITY_LEVELS[p].label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Sort popover - only show in list view */}
+      {viewMode === 'list' && <SortPopover />}
 
-      {/* Label filter */}
-      <LabelPickerDropdown
-        labels={labels}
-        selectedLabelIds={activeFilters.labels}
-        onToggle={toggleLabelFilter}
-        variant="filter"
-      />
-
-      {/* Exclude Label filter */}
-      <LabelPickerDropdown
-        labels={labels}
-        selectedLabelIds={activeFilters.excludeLabels}
-        onToggle={toggleExcludeLabelFilter}
-        variant="exclude"
-        dropdownHeader="Hide tasks with these labels"
-      />
-
-      {/* Clear filters button */}
-      {filtersActive && (
+      {/* Clear all button */}
+      {hasAnythingActive && (
         <button
-          onClick={handleClearFilters}
-          className="flex items-center gap-2 px-3 py-2 text-sm bg-accent hover:bg-accent/80 rounded-lg transition-colors text-accent-foreground"
+          onClick={handleClearAll}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+          title="Clear all filters and sorts"
         >
           <X className="w-4 h-4" />
           <span>Clear</span>
         </button>
-      )}
-
-      {/* Active filter indicator */}
-      {filtersActive && (
-        <div className="text-xs text-muted-foreground">
-          Filters active
-        </div>
       )}
     </div>
   );

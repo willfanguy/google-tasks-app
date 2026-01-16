@@ -10,6 +10,7 @@ import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { PRIORITY_LEVELS } from '../../types/priority';
 import TaskCard from './TaskCard';
 import { Task } from '../../types/task';
 import {
@@ -30,8 +31,55 @@ export default function UnifiedListView() {
   const activeFilters = useFilterStore((s) => s.activeFilters);
   const sortOptions = useFilterStore((s) => s.sortOptions);
   const getFilteredAndSortedTasks = useFilterStore((s) => s.getFilteredAndSortedTasks);
+  const activePresetId = useFilterStore((s) => s.activePresetId);
+  const filterPresets = useFilterStore((s) => s.filterPresets);
   const getTaskLabels = useLabelStore((s) => s.getTaskLabels);
+  const getLabelById = useLabelStore((s) => s.getLabelById);
   const collapsedTasks = useUIStore((s) => s.collapsedTasks);
+
+  // Build dynamic title based on active preset or filters
+  const viewTitle = useMemo(() => {
+    // If a preset is active, use its name
+    if (activePresetId) {
+      const preset = filterPresets.find((p) => p.id === activePresetId);
+      if (preset) {
+        return preset.name;
+      }
+    }
+
+    // Otherwise, build title from active filters
+    const parts: string[] = [];
+
+    // Status filter
+    if (activeFilters.status === 'needsAction') {
+      parts.push('Active');
+    } else if (activeFilters.status === 'completed') {
+      parts.push('Completed');
+    }
+
+    // Priority filter
+    if (activeFilters.priority) {
+      parts.push(PRIORITY_LEVELS[activeFilters.priority].label);
+    }
+
+    // Label filter (show first label name if filtering by labels)
+    if (activeFilters.labels.length > 0) {
+      const firstLabel = getLabelById(activeFilters.labels[0]);
+      if (firstLabel) {
+        parts.push(firstLabel.name);
+        if (activeFilters.labels.length > 1) {
+          parts.push(`+${activeFilters.labels.length - 1}`);
+        }
+      }
+    }
+
+    // If no filters, show "All Tasks"
+    if (parts.length === 0) {
+      return 'All Tasks';
+    }
+
+    return parts.join(' · ') + ' Tasks';
+  }, [activePresetId, filterPresets, activeFilters, getLabelById]);
 
   // Intentionally "use" these values to keep the subscriptions active even if
   // the current render logic doesn't directly reference them.
@@ -100,15 +148,15 @@ export default function UnifiedListView() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Show total count */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">
-            All Tasks
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Compact header */}
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {viewTitle}
           </h2>
-          <span className="text-sm text-muted-foreground">
-            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          <span className="text-xs text-muted-foreground/60">
+            ({filteredTasks.length})
           </span>
         </div>
 

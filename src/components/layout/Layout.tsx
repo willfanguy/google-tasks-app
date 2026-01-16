@@ -7,7 +7,6 @@ import { ReactNode } from 'react';
 import Header from './Header';
 import Sidebar from '../sidebar/Sidebar';
 import FilterBar from '../filters/FilterBar';
-import SortBar from '../filters/SortBar';
 import BulkEditToolbar from '../filters/BulkEditToolbar';
 import { useUIStore } from '../../stores/uiStore';
 import UnifiedListView from '../board/UnifiedListView';
@@ -44,9 +43,6 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Bulk edit toolbar */}
           <BulkEditToolbar />
-
-          {/* Sort bar */}
-          {viewMode === 'list' && <SortBar />}
 
           {/* View content - either board or list */}
           <div className="flex-1 flex flex-col overflow-hidden">
