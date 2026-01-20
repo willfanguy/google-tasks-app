@@ -1,7 +1,7 @@
 /**
  * External Sync Hook
  * Listens for sync updates from external tools (like Claude's todo-sync-processor)
- * and applies JIRA metadata as labels/priorities to tasks
+ * and applies JIRA metadata as labels to tasks
  */
 
 import { useEffect, useCallback, useRef } from 'react';
@@ -9,7 +9,6 @@ import { useLabelStore } from '../stores/labelStore';
 import { logger } from '../utils/logger';
 import type { SyncData } from '../types/ipc';
 import type { LabelColor } from '../types/label';
-import type { Priority } from '../types/priority';
 
 // JIRA types to skip creating labels for (we don't need these as labels)
 const SKIP_JIRA_TYPES = new Set(['Task', 'Design Story', 'Story']);
@@ -47,25 +46,11 @@ const STATUS_COLORS: Record<string, LabelColor> = {
 // Default color for unknown statuses
 const DEFAULT_STATUS_COLOR: LabelColor = '#8b5cf6'; // violet
 
-// Map JIRA priority to app priority
-function mapJiraPriority(jiraPriority?: string): Priority | undefined {
-  if (!jiraPriority) return undefined;
-
-  const lower = jiraPriority.toLowerCase();
-  if (lower === 'highest' || lower === 'critical' || lower === 'blocker') return 'high';
-  if (lower === 'high') return 'high';
-  if (lower === 'medium' || lower === 'normal') return 'medium';
-  if (lower === 'low' || lower === 'lowest' || lower === 'minor' || lower === 'trivial') return 'low';
-
-  return undefined;
-}
-
 export function useExternalSync() {
   const {
     createLabel,
     getLabelByName,
     setTaskLabels,
-    setTaskPriority,
   } = useLabelStore();
 
   // Track last processed sync to prevent redundant processing
@@ -138,16 +123,9 @@ export function useExternalSync() {
           setTaskLabels(taskId, labelIds);
           logger.log('[ExternalSync] Applied labels to task:', taskId, labelIds);
         }
-
-        // Apply priority from JIRA or explicit priority
-        const priority = metadata.priority || mapJiraPriority(metadata.jiraPriority);
-        if (priority) {
-          setTaskPriority(taskId, priority);
-          logger.log('[ExternalSync] Applied priority to task:', taskId, priority);
-        }
       }
     },
-    [getOrCreateStatusLabel, setTaskLabels, setTaskPriority]
+    [getOrCreateStatusLabel, setTaskLabels]
   );
 
   useEffect(() => {

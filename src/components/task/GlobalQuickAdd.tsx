@@ -14,7 +14,7 @@ import { logger } from '../../utils/logger';
 
 export default function GlobalQuickAdd() {
   const { taskLists, createTask, fetchTaskLists } = useTaskStore();
-  const { getLabelByName, setTaskPriority } = useLabelStore();
+  const { getLabelByName } = useLabelStore();
 
   const [title, setTitle] = useState('');
   const [selectedListId, setSelectedListId] = useState('');
@@ -103,16 +103,11 @@ export default function GlobalQuickAdd() {
         }
       }
 
-      const newTask = await createTask(targetListId, {
+      await createTask(targetListId, {
         title: finalTitle,
         due: dueISO,
         labels: labelIds,
       });
-
-      // Set priority if parsed
-      if (parsed.priority && newTask) {
-        setTaskPriority(newTask.id, parsed.priority);
-      }
 
       // Success! Clear and hide
       setTitle('');
@@ -193,7 +188,7 @@ export default function GlobalQuickAdd() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Task title... (@list #label !priority tomorrow)"
+            placeholder="Task title... (@list #label tomorrow)"
             className="flex-1 h-10 px-3 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
           />
         </div>

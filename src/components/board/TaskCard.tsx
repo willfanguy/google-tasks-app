@@ -11,12 +11,10 @@ import {
   CheckSquare,
   ChevronRight,
   ChevronDown,
-  Flag,
   Square,
 } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { Task } from "../../types/task";
-import { PRIORITY_LEVELS } from "../../types/priority";
 import { useTaskStore } from "../../stores/taskStore";
 import { useUIStore } from "../../stores/uiStore";
 import { useLabelStore } from "../../stores/labelStore";
@@ -50,7 +48,6 @@ export default function TaskCard({
   const isTaskCollapsed = useUIStore((s) => s.isTaskCollapsed);
   const getTaskLabels = useLabelStore((s) => s.getTaskLabels);
   const getLabelById = useLabelStore((s) => s.getLabelById);
-  const getTaskPriority = useLabelStore((s) => s.getTaskPriority);
   const isSelectionMode = useSelectionStore((s) => s.isSelectionMode);
   const isTaskSelected = useSelectionStore((s) => s.isTaskSelected);
   const toggleTaskSelection = useSelectionStore((s) => s.toggleTaskSelection);
@@ -58,10 +55,6 @@ export default function TaskCard({
 
   // Local state for async operation safety
   const [isToggling, setIsToggling] = useState(false);
-
-  // Get task priority
-  const taskPriority = getTaskPriority(task.id);
-  const hasPriority = taskPriority !== undefined;
 
   // Setup draggable
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -303,7 +296,7 @@ export default function TaskCard({
       </div>
 
       {/* Metadata row */}
-      {(hasDueDate || hasNotes || hasPriority || showListName || (inlineLabels && taskLabels.length > 0)) && (
+      {(hasDueDate || hasNotes || showListName || (inlineLabels && taskLabels.length > 0)) && (
         <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
           {/* List name badge (for unified view) */}
           {showListName && task.listTitle && (
@@ -321,17 +314,6 @@ export default function TaskCard({
               {label!.name}
             </span>
           ))}
-
-          {/* Priority */}
-          {hasPriority && (
-            <div
-              className="flex items-center gap-1 font-medium"
-              style={{ color: PRIORITY_LEVELS[taskPriority!].color }}
-            >
-              <Flag className="w-3.5 h-3.5" />
-              <span>{PRIORITY_LEVELS[taskPriority!].label}</span>
-            </div>
-          )}
 
           {/* Due date */}
           {hasDueDate && (

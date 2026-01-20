@@ -1,12 +1,11 @@
 /**
  * ParsedTaskPreview Component
  * Displays parsed task tokens as interactive chips
- * Shows preview of dates, lists, labels, and priority
+ * Shows preview of dates, lists, and labels
  */
 
-import { Calendar, List, Tag, Flag, X } from 'lucide-react';
+import { Calendar, List, Tag, X } from 'lucide-react';
 import { ParsedTaskInput, ParsedToken } from '../../utils/taskParser';
-import { PRIORITY_LEVELS } from '../../types/priority';
 
 interface ParsedTaskPreviewProps {
   parsed: ParsedTaskInput;
@@ -92,32 +91,6 @@ export default function ParsedTaskPreview({
             )}
           </div>
         );
-
-      case 'priority': {
-        const priorityColor = PRIORITY_LEVELS[token.value as keyof typeof PRIORITY_LEVELS]?.color;
-        return (
-          <div
-            key={`priority-${index}`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-            style={{
-              backgroundColor: `${priorityColor}20`,
-              color: priorityColor,
-            }}
-          >
-            <Flag className="w-3 h-3" />
-            <span>{token.displayValue}</span>
-            {canRemove && (
-              <button
-                onClick={handleRemove}
-                className="ml-0.5 rounded-full p-0.5 transition-colors hover:opacity-70"
-                title="Remove priority"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        );
-      }
 
       default:
         return null;

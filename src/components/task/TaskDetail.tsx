@@ -4,12 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Trash2, Check, Plus, Flag, List } from 'lucide-react';
+import { X, Trash2, Check, Plus, List } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { Task } from '../../types/task';
-import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { getSubtasks } from '../../utils/taskHierarchy';
 import { logger } from '../../utils/logger';
 import { getColorClasses } from '../../utils/colorClasses';
@@ -21,7 +20,7 @@ export default function TaskDetail() {
   const { modals, selectedTaskId, selectedListId, closeTaskDetail, openQuickAdd } = useUIStore();
   const { taskLists, getTaskById, updateTask, deleteTask, getTasksByList, moveTask } = useTaskStore();
   const addNotification = useUIStore((s) => s.addNotification);
-  const { getTaskLabels, setTaskLabels, getLabelById, getSortedLabels, getTaskPriority, setTaskPriority } = useLabelStore();
+  const { getTaskLabels, setTaskLabels, getLabelById, getSortedLabels } = useLabelStore();
   const labels = getSortedLabels();
 
   const [title, setTitle] = useState('');
@@ -29,7 +28,6 @@ export default function TaskDetail() {
   const [dueDate, setDueDate] = useState('');
   const [status, setStatus] = useState<'needsAction' | 'completed'>('needsAction');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [priority, setPriority] = useState<Priority | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMoveWarning, setShowMoveWarning] = useState(false);
@@ -59,11 +57,8 @@ export default function TaskDetail() {
       // Load task labels
       const taskLabels = getTaskLabels(task.id);
       setSelectedLabels(taskLabels);
-      // Load task priority
-      const taskPriority = getTaskPriority(task.id);
-      setPriority(taskPriority);
     }
-  }, [task, getTaskLabels, getTaskPriority]);
+  }, [task, getTaskLabels]);
 
   if (!modals.taskDetail || !task || !selectedListId) {
     return null;
@@ -98,9 +93,8 @@ export default function TaskDetail() {
 
       await updateTask(selectedListId, task.id, updates);
 
-      // Save labels and priority
+      // Save labels
       setTaskLabels(task.id, selectedLabels);
-      setTaskPriority(task.id, priority);
 
       handleClose();
     } finally {
@@ -276,35 +270,6 @@ export default function TaskDetail() {
               onChange={setDueDate}
               placeholder="today, tomorrow, next monday..."
             />
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Priority
-            </label>
-            <div className="relative">
-              <Flag
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                style={{ color: priority ? PRIORITY_LEVELS[priority].color : undefined }}
-              />
-              <select
-                value={priority || ''}
-                onChange={(e) => setPriority(e.target.value as Priority || undefined)}
-                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer appearance-none"
-                style={{
-                  color: priority ? PRIORITY_LEVELS[priority].color : undefined,
-                  fontWeight: priority ? '600' : undefined
-                }}
-              >
-                <option value="">No Priority</option>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {PRIORITY_LEVELS[p].label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {/* List */}

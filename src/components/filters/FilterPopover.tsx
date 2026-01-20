@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Filter, X, Check } from 'lucide-react';
 import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
-import { Priority, PRIORITY_LEVELS, PRIORITY_OPTIONS } from '../../types/priority';
 import { getColorClasses } from '../../utils/colorClasses';
 
 export default function FilterPopover() {
@@ -15,7 +14,6 @@ export default function FilterPopover() {
   const {
     activeFilters,
     setStatusFilter,
-    setPriorityFilter,
     toggleLabelFilter,
     toggleExcludeLabelFilter,
     clearFilters,
@@ -27,7 +25,6 @@ export default function FilterPopover() {
   const filtersActive = hasActiveFilters();
   const activeCount = [
     activeFilters.status,
-    activeFilters.priority,
     activeFilters.labels.length > 0,
     activeFilters.excludeLabels.length > 0,
   ].filter(Boolean).length;
@@ -37,14 +34,6 @@ export default function FilterPopover() {
       setStatusFilter(undefined);
     } else {
       setStatusFilter(value as 'needsAction' | 'completed');
-    }
-  };
-
-  const handlePriorityChange = (value: string) => {
-    if (value === 'all') {
-      setPriorityFilter(undefined);
-    } else {
-      setPriorityFilter(value as Priority);
     }
   };
 
@@ -112,42 +101,6 @@ export default function FilterPopover() {
                       }`}
                     >
                       {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Priority filter */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Priority
-                </label>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    onClick={() => handlePriorityChange('all')}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                      !activeFilters.priority
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-accent text-accent-foreground hover:bg-accent/80'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => handlePriorityChange(p)}
-                      className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                        activeFilters.priority === p
-                          ? 'text-white'
-                          : 'bg-accent hover:bg-accent/80'
-                      }`}
-                      style={{
-                        backgroundColor: activeFilters.priority === p ? PRIORITY_LEVELS[p].color : undefined,
-                        color: activeFilters.priority === p ? 'white' : PRIORITY_LEVELS[p].color,
-                      }}
-                    >
-                      {PRIORITY_LEVELS[p].label}
                     </button>
                   ))}
                 </div>

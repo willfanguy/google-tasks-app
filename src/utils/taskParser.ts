@@ -1,23 +1,21 @@
 /**
  * Task Input Parser
- * Parses natural language task input including dates, lists, labels, and priority
+ * Parses natural language task input including dates, lists, and labels
  *
  * Syntax supported:
  * - @ListName or @"List Name with spaces" - assigns to list
  * - #label or #"label name" - adds label
- * - !high, !medium, !low, !p1, !p2, !p3 - sets priority
  * - Natural language dates from dateParser (today, tomorrow, jan 15, etc.)
  */
 
-import { Priority } from '../types/priority';
 import { parseNaturalDate, formatToDateInput } from './dateParser';
 
-export type TokenType = 'date' | 'list' | 'label' | 'priority';
+export type TokenType = 'date' | 'list' | 'label';
 
 export interface ParsedToken {
   type: TokenType;
   raw: string;       // Original text including sigil (@, #, !)
-  value: string;     // Parsed value (list name, label name, priority value, or date string)
+  value: string;     // Parsed value (list name, label name, or date string)
   start: number;     // Start position in original input
   end: number;       // End position in original input
   displayValue?: string; // Human-friendly display (e.g., "Tomorrow" for date)
@@ -30,20 +28,8 @@ export interface ParsedTaskInput {
   dateDisplay: string | null; // Human-friendly date (e.g., "Tomorrow")
   listName: string | null;    // From @ListName
   labels: string[];           // From #label tokens
-  priority: Priority | null;  // From !priority tokens
   tokens: ParsedToken[];      // All parsed tokens for preview
 }
-
-// Priority aliases mapping to canonical priority values
-const PRIORITY_MAP: Record<string, Priority> = {
-  'high': 'high',
-  'p1': 'high',
-  'medium': 'medium',
-  'med': 'medium',
-  'p2': 'medium',
-  'low': 'low',
-  'p3': 'low',
-};
 
 /**
  * Extract tokens matching a pattern from input
@@ -97,54 +83,6 @@ function extractTokens(
   }
 
   return { tokens, remaining };
-}
-
-/**
- * Extract priority token from input
- */
-function extractPriority(input: string): {
-  token: ParsedToken | null;
-  remaining: string;
-  priority: Priority | null;
-} {
-  // Pattern: !high, !medium, !low, !p1, !p2, !p3
-  const pattern = /!(high|med|medium|low|p[1-3]|none)\b/gi;
-  const match = pattern.exec(input);
-
-  if (!match) {
-    return { token: null, remaining: input, priority: null };
-  }
-
-  const rawPriority = match[1].toLowerCase();
-
-  // Handle !none as removing priority
-  if (rawPriority === 'none') {
-    const remaining = input.slice(0, match.index) + input.slice(match.index + match[0].length);
-    return {
-      token: null,
-      remaining: remaining.trim(),
-      priority: null
-    };
-  }
-
-  const priority = PRIORITY_MAP[rawPriority] || null;
-
-  if (!priority) {
-    return { token: null, remaining: input, priority: null };
-  }
-
-  const token: ParsedToken = {
-    type: 'priority',
-    raw: match[0],
-    value: priority,
-    start: match.index,
-    end: match.index + match[0].length,
-    displayValue: priority.charAt(0).toUpperCase() + priority.slice(1),
-  };
-
-  const remaining = input.slice(0, match.index) + input.slice(match.index + match[0].length);
-
-  return { token, remaining: remaining.trim(), priority };
 }
 
 /**
@@ -244,14 +182,7 @@ export function parseTaskInput(input: string): ParsedTaskInput {
   allTokens.push(...labelResult.tokens);
   const labels = labelResult.tokens.map(t => t.value);
 
-  // 3. Extract priority (!high, !p1, etc.)
-  const priorityResult = extractPriority(remaining);
-  remaining = priorityResult.remaining;
-  if (priorityResult.token) {
-    allTokens.push(priorityResult.token);
-  }
-
-  // 4. Extract date (natural language)
+  // 3. Extract date (natural language)
   const dateResult = extractDate(remaining);
   remaining = dateResult.remaining;
   if (dateResult.token) {
@@ -271,7 +202,6 @@ export function parseTaskInput(input: string): ParsedTaskInput {
     dateDisplay: dateResult.dateDisplay,
     listName,
     labels,
-    priority: priorityResult.priority,
     tokens: allTokens,
   };
 }
@@ -287,7 +217,7 @@ export function hasParseableContent(input: string): boolean {
 
 /**
  * Get a preview string for parsed content
- * Returns something like "Tomorrow, @Work, #urgent, High priority"
+ * Returns something like "Tomorrow, @Work, #urgent"
  */
 export function getParsePreview(parsed: ParsedTaskInput): string {
   const parts: string[] = [];
@@ -302,10 +232,6 @@ export function getParsePreview(parsed: ParsedTaskInput): string {
 
   for (const label of parsed.labels) {
     parts.push(`#${label}`);
-  }
-
-  if (parsed.priority) {
-    parts.push(`${parsed.priority.charAt(0).toUpperCase() + parsed.priority.slice(1)} priority`);
   }
 
   return parts.join(', ');

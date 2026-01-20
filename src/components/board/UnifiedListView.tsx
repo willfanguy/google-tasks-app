@@ -10,7 +10,6 @@ import { useFilterStore } from '../../stores/filterStore';
 import { useLabelStore } from '../../stores/labelStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { PRIORITY_LEVELS } from '../../types/priority';
 import TaskCard from './TaskCard';
 import { Task } from '../../types/task';
 import {
@@ -55,11 +54,6 @@ export default function UnifiedListView() {
       parts.push('Active');
     } else if (activeFilters.status === 'completed') {
       parts.push('Completed');
-    }
-
-    // Priority filter
-    if (activeFilters.priority) {
-      parts.push(PRIORITY_LEVELS[activeFilters.priority].label);
     }
 
     // Label filter (show first label name if filtering by labels)

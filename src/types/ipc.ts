@@ -71,10 +71,8 @@ export interface SyncTaskMetadata {
   jiraKey?: string;
   jiraStatus?: string;
   jiraType?: string;
-  jiraPriority?: string;
   sprint?: string;
   labels?: string[];
-  priority?: 'high' | 'medium' | 'low';
   dueDate?: string;
   lastSynced?: string;
 }

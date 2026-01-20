@@ -7,7 +7,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Task, SortOption } from '../types/task';
 import { ActiveFilters, FilterPreset, DEFAULT_FILTER_PRESETS } from '../types/filter';
-import { Priority, PRIORITY_LEVELS } from '../types/priority';
 import { logger } from '../utils/logger';
 import { useLabelStore } from './labelStore';
 
@@ -24,7 +23,6 @@ interface FilterState {
   toggleExcludeLabelFilter: (labelId: string) => void;
   setExcludeLabelFilters: (labelIds: string[]) => void;
   setStatusFilter: (status: 'needsAction' | 'completed' | undefined) => void;
-  setPriorityFilter: (priority: Priority | undefined) => void;
   setDateRangeFilter: (range?: { start?: Date; end?: Date }) => void;
   setHasNotesFilter: (hasNotes: boolean) => void;
   setHasSubtasksFilter: (hasSubtasks: boolean) => void;
@@ -50,7 +48,6 @@ const DEFAULT_FILTERS: ActiveFilters = {
   labels: [],
   excludeLabels: [],
   status: undefined,
-  priority: undefined,
   dateRange: undefined,
   hasNotes: false,
   hasSubtasks: false,
@@ -144,17 +141,6 @@ export const useFilterStore = create<FilterState>()(
         logger.log('[FilterStore] Setting status filter:', status);
         set((state) => ({
           activeFilters: { ...state.activeFilters, status },
-          activePresetId: null,
-        }));
-      },
-
-      /**
-       * Sets the priority filter
-       */
-      setPriorityFilter: (priority: Priority | undefined) => {
-        logger.log('[FilterStore] Setting priority filter:', priority);
-        set((state) => ({
-          activeFilters: { ...state.activeFilters, priority },
           activePresetId: null,
         }));
       },
@@ -378,14 +364,6 @@ export const useFilterStore = create<FilterState>()(
           filtered = filtered.filter((task) => task.status === activeFilters.status);
         }
 
-        // Priority filter
-        if (activeFilters.priority) {
-          filtered = filtered.filter((task) => {
-            const taskPriority = useLabelStore.getState().getTaskPriority(task.id);
-            return taskPriority === activeFilters.priority;
-          });
-        }
-
         // Date range filter
         if (activeFilters.dateRange) {
           const { start, end } = activeFilters.dateRange;
@@ -570,36 +548,6 @@ export const useFilterStore = create<FilterState>()(
               return labelB.order - labelA.order;
             }
 
-            case 'priority-asc': {
-              const priorityA = useLabelStore.getState().getTaskPriority(a.id);
-              const priorityB = useLabelStore.getState().getTaskPriority(b.id);
-
-              // If both have no priority, they're equal - proceed to secondary sort
-              if (!priorityA && !priorityB) return 0;
-
-              // Tasks without priority come last
-              if (!priorityA) return 1;
-              if (!priorityB) return -1;
-
-              // Sort by priority order (lower order = higher priority)
-              return PRIORITY_LEVELS[priorityA].order - PRIORITY_LEVELS[priorityB].order;
-            }
-
-            case 'priority-desc': {
-              const priorityA = useLabelStore.getState().getTaskPriority(a.id);
-              const priorityB = useLabelStore.getState().getTaskPriority(b.id);
-
-              // If both have no priority, they're equal - proceed to secondary sort
-              if (!priorityA && !priorityB) return 0;
-
-              // Tasks without priority come last
-              if (!priorityA) return 1;
-              if (!priorityB) return -1;
-
-              // Sort by priority order reversed (higher order = lower priority)
-              return PRIORITY_LEVELS[priorityB].order - PRIORITY_LEVELS[priorityA].order;
-            }
-
             default:
               return 0;
           }
@@ -642,7 +590,6 @@ export const useFilterStore = create<FilterState>()(
           activeFilters.labels.length > 0 ||
           activeFilters.excludeLabels.length > 0 ||
           activeFilters.status !== undefined ||
-          activeFilters.priority !== undefined ||
           activeFilters.dateRange !== undefined ||
           activeFilters.hasNotes ||
           activeFilters.hasSubtasks

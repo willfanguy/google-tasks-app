@@ -625,9 +625,8 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             throw new Error('Task not found');
           }
 
-          // Preserve local metadata (labels/priority) across the new task ID
+          // Preserve local metadata (labels) across the new task ID
           const existingLabels = useLabelStore.getState().getTaskLabels(taskId);
-          const existingPriority = useLabelStore.getState().getTaskPriority(taskId);
 
           // Create in destination list
           const newTask = await get().createTask(data.destinationList, {
@@ -644,11 +643,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
             if (existingLabels.length > 0) {
               useLabelStore.getState().setTaskLabels(newTask.id, existingLabels);
             }
-            if (existingPriority) {
-              useLabelStore.getState().setTaskPriority(newTask.id, existingPriority);
-            }
             useLabelStore.getState().clearTaskLabels(taskId);
-            useLabelStore.getState().clearTaskPriority(taskId);
 
             await get().deleteTask(listId, taskId);
           }
