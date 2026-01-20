@@ -166,7 +166,7 @@ export default function FilterPopover() {
                       const isSelected = activeFilters.labels.includes(label.id);
                       return (
                         <button
-                          key={label.id}
+                          key={`include-${label.id}`}
                           onClick={() => toggleLabelFilter(label.id)}
                           className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                             getColorClasses(label.color).bg
@@ -196,7 +196,7 @@ export default function FilterPopover() {
                       const isSelected = activeFilters.excludeLabels.includes(label.id);
                       return (
                         <button
-                          key={label.id}
+                          key={`exclude-${label.id}`}
                           onClick={() => toggleExcludeLabelFilter(label.id)}
                           className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                             getColorClasses(label.color).bg

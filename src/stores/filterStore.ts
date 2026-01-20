@@ -357,18 +357,20 @@ export const useFilterStore = create<FilterState>()(
           );
         }
 
-        // Label filter (include)
+        // Label filter (include) - use labelStore as source of truth
         if (activeFilters.labels.length > 0) {
-          filtered = filtered.filter((task) =>
-            task.labels?.some((labelId) => activeFilters.labels.includes(labelId))
-          );
+          filtered = filtered.filter((task) => {
+            const taskLabels = useLabelStore.getState().getTaskLabels(task.id);
+            return taskLabels.some((labelId) => activeFilters.labels.includes(labelId));
+          });
         }
 
-        // Exclude label filter
+        // Exclude label filter - use labelStore as source of truth
         if (activeFilters.excludeLabels.length > 0) {
-          filtered = filtered.filter((task) =>
-            !task.labels?.some((labelId) => activeFilters.excludeLabels.includes(labelId))
-          );
+          filtered = filtered.filter((task) => {
+            const taskLabels = useLabelStore.getState().getTaskLabels(task.id);
+            return !taskLabels.some((labelId) => activeFilters.excludeLabels.includes(labelId));
+          });
         }
 
         // Status filter
@@ -511,10 +513,11 @@ export const useFilterStore = create<FilterState>()(
             }
 
             case 'label-asc': {
-              const labelsA = a.labels;
-              const labelsB = b.labels;
-              const hasLabelsA = !!labelsA && labelsA.length > 0;
-              const hasLabelsB = !!labelsB && labelsB.length > 0;
+              // Use labelStore as source of truth for labels
+              const labelsA = useLabelStore.getState().getTaskLabels(a.id);
+              const labelsB = useLabelStore.getState().getTaskLabels(b.id);
+              const hasLabelsA = labelsA.length > 0;
+              const hasLabelsB = labelsB.length > 0;
 
               // If both have no labels, they're equal - proceed to secondary sort
               if (!hasLabelsA && !hasLabelsB) return 0;
@@ -524,8 +527,8 @@ export const useFilterStore = create<FilterState>()(
               if (!hasLabelsB) return -1;
 
               // Get the first label for each task
-              const labelA = useLabelStore.getState().getLabelById(labelsA![0]);
-              const labelB = useLabelStore.getState().getLabelById(labelsB![0]);
+              const labelA = useLabelStore.getState().getLabelById(labelsA[0]);
+              const labelB = useLabelStore.getState().getLabelById(labelsB[0]);
 
               // If both labels don't exist, they're equal - proceed to secondary sort
               if (!labelA && !labelB) return 0;
@@ -539,10 +542,11 @@ export const useFilterStore = create<FilterState>()(
             }
 
             case 'label-desc': {
-              const labelsA = a.labels;
-              const labelsB = b.labels;
-              const hasLabelsA = !!labelsA && labelsA.length > 0;
-              const hasLabelsB = !!labelsB && labelsB.length > 0;
+              // Use labelStore as source of truth for labels
+              const labelsA = useLabelStore.getState().getTaskLabels(a.id);
+              const labelsB = useLabelStore.getState().getTaskLabels(b.id);
+              const hasLabelsA = labelsA.length > 0;
+              const hasLabelsB = labelsB.length > 0;
 
               // If both have no labels, they're equal - proceed to secondary sort
               if (!hasLabelsA && !hasLabelsB) return 0;
@@ -552,8 +556,8 @@ export const useFilterStore = create<FilterState>()(
               if (!hasLabelsB) return -1;
 
               // Get the first label for each task
-              const labelA = useLabelStore.getState().getLabelById(labelsA![0]);
-              const labelB = useLabelStore.getState().getLabelById(labelsB![0]);
+              const labelA = useLabelStore.getState().getLabelById(labelsA[0]);
+              const labelB = useLabelStore.getState().getLabelById(labelsB[0]);
 
               // If both labels don't exist, they're equal - proceed to secondary sort
               if (!labelA && !labelB) return 0;

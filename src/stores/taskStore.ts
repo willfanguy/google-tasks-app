@@ -55,6 +55,7 @@ interface TaskState {
       dueDate?: string | null;
       listId?: string;
       labelIds?: string[];
+      removeLabelIds?: string[];
     }
   ) => Promise<void>;
 }
@@ -789,6 +790,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
         dueDate?: string | null;
         listId?: string;
         labelIds?: string[];
+        removeLabelIds?: string[];
       }
     ) => {
       logger.log(`[TaskStore] Bulk updating ${taskIds.length} tasks:`, updates);
@@ -818,18 +820,32 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
           taskUpdates.due = updates.dueDate || undefined;
         }
 
-        // Update labels if specified - MERGE with existing labels
-        let mergedLabels: string[] | undefined;
-        if (updates.labelIds && updates.labelIds.length > 0) {
+        // Handle label changes - add new labels and/or remove specified labels
+        let finalLabels: string[] | undefined;
+        const hasLabelChanges = (updates.labelIds && updates.labelIds.length > 0) ||
+                                (updates.removeLabelIds && updates.removeLabelIds.length > 0);
+
+        if (hasLabelChanges) {
           const currentLabels = useLabelStore.getState().getTaskLabels(taskId);
-          // Merge new labels with existing ones (deduplicate)
-          mergedLabels = [...new Set([...currentLabels, ...updates.labelIds])];
-          taskUpdates.labels = mergedLabels;
+          let workingLabels = [...currentLabels];
+
+          // Remove labels first (if specified)
+          if (updates.removeLabelIds && updates.removeLabelIds.length > 0) {
+            workingLabels = workingLabels.filter(id => !updates.removeLabelIds!.includes(id));
+          }
+
+          // Then add new labels (if specified)
+          if (updates.labelIds && updates.labelIds.length > 0) {
+            workingLabels = [...new Set([...workingLabels, ...updates.labelIds])];
+          }
+
+          finalLabels = workingLabels;
+          taskUpdates.labels = finalLabels;
 
           // If not moving lists, update labelStore immediately (it's persisted to localStorage).
           // If moving lists, the task ID changes; we'll apply labels to the NEW ID after move.
           if (!willMove) {
-            useLabelStore.getState().setTaskLabels(taskId, mergedLabels);
+            useLabelStore.getState().setTaskLabels(taskId, finalLabels);
           }
         }
 
@@ -849,9 +865,9 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
                 await get().updateTask(moved.destinationListId, moved.destinationTaskId, taskUpdates);
               }
 
-              // Re-apply merged labels to the new task ID (if applicable)
-              if (mergedLabels) {
-                useLabelStore.getState().setTaskLabels(moved.destinationTaskId, mergedLabels);
+              // Re-apply final labels to the new task ID (if applicable)
+              if (finalLabels) {
+                useLabelStore.getState().setTaskLabels(moved.destinationTaskId, finalLabels);
               }
             })()
           );

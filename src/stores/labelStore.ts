@@ -10,6 +10,19 @@ import { Label, DEFAULT_LABEL_COLORS, LabelColor } from '../types/label';
 import { Priority } from '../types/priority';
 import { logger } from '../utils/logger';
 
+// Counter to ensure unique IDs even when Date.now() returns the same value
+let labelIdCounter = 0;
+
+/**
+ * Generates a unique label ID using timestamp + counter + random suffix
+ */
+function generateLabelId(): string {
+  const timestamp = Date.now();
+  const counter = labelIdCounter++;
+  const random = Math.random().toString(36).substring(2, 8);
+  return `label-${timestamp}-${counter}-${random}`;
+}
+
 interface LabelState {
   labels: Label[];
   taskLabels: Map<string, string[]>; // taskId -> labelIds[]
@@ -59,7 +72,7 @@ export const useLabelStore = create<LabelState>()(
           ];
 
         const newLabel: Label = {
-          id: `label-${Date.now()}`,
+          id: generateLabelId(),
           name,
           color: selectedColor,
           order: get().labels.length,
@@ -290,6 +303,78 @@ export const useLabelStore = create<LabelState>()(
     }),
     {
       name: 'label-storage',
+      // Fix duplicate label IDs on rehydration (one-time migration)
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (!state) return;
+
+          // Check for duplicate label IDs
+          const idToLabels = new Map<string, Label[]>();
+          for (const label of state.labels) {
+            const existing = idToLabels.get(label.id) || [];
+            existing.push(label);
+            idToLabels.set(label.id, existing);
+          }
+
+          // Find duplicate IDs (IDs shared by multiple labels)
+          const duplicateIds = new Set<string>();
+          for (const [id, labels] of idToLabels.entries()) {
+            if (labels.length > 1) {
+              duplicateIds.add(id);
+            }
+          }
+
+          if (duplicateIds.size === 0) {
+            return; // No duplicates, nothing to fix
+          }
+
+          logger.warn(
+            '[LabelStore] Found duplicate label IDs, running migration:',
+            Array.from(duplicateIds).map((id) => ({
+              id,
+              names: idToLabels.get(id)?.map((l) => l.name),
+            }))
+          );
+
+          // Assign new unique IDs to all labels with duplicate IDs
+          const fixedLabels = state.labels.map((label) => {
+            if (!duplicateIds.has(label.id)) {
+              return label; // Not a duplicate, keep as-is
+            }
+
+            // This label has a duplicate ID - assign a new unique ID
+            const newId = generateLabelId();
+            logger.log(
+              `[LabelStore] Remapping label "${label.name}" from ${label.id} to ${newId}`
+            );
+            return { ...label, id: newId };
+          });
+
+          // Clear taskLabels that reference any duplicate ID
+          // (external sync will re-apply correct labels on next run)
+          const fixedTaskLabels = new Map<string, string[]>();
+          let clearedCount = 0;
+          state.taskLabels.forEach((labelIds, taskId) => {
+            const validIds = labelIds.filter((id) => !duplicateIds.has(id));
+            if (validIds.length !== labelIds.length) {
+              clearedCount++;
+            }
+            if (validIds.length > 0) {
+              fixedTaskLabels.set(taskId, validIds);
+            }
+          });
+
+          // Apply the fixes
+          useLabelStore.setState({
+            labels: fixedLabels,
+            taskLabels: fixedTaskLabels,
+          });
+
+          logger.log(
+            `[LabelStore] Migration complete. Fixed ${duplicateIds.size} duplicate IDs, cleared labels from ${clearedCount} tasks. External sync will re-apply labels.`
+          );
+        };
+      },
       // Custom storage to handle Map serialization and contextIsolation
       storage: {
         getItem: (name) => {
