@@ -2,7 +2,7 @@
   "name": "google-tasks-app",
   "version": "1.0.0",
   "description": "A desktop application for Google Tasks with Kanban board, labels, filtering, sorting, and themes",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/electron/main.js",
   "author": "Will",
   "license": "MIT",
   "private": true,

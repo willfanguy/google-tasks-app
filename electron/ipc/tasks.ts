@@ -3,6 +3,9 @@ import { getAuthenticatedClient } from '../utils/auth';
 import { google } from 'googleapis';
 import { logger } from '../utils/logger';
 
+// Cutoff date for completed tasks - tasks completed before this date are filtered out
+const COMPLETED_TASK_CUTOFF = new Date('2026-01-05T00:00:00Z');
+
 // Helper to get the Tasks API client
 async function getTasksClient() {
   const auth = await getAuthenticatedClient();
@@ -43,9 +46,24 @@ export const setupTaskHandlers = () => {
         showHidden: true,
       });
 
-      logger.log('[IPC] get-tasks: Found', response.data.items?.length || 0, 'tasks');
+      const allTasks = response.data.items || [];
 
-      return { success: true, data: response.data.items || [] };
+      // Filter out completed tasks that were completed before the cutoff date
+      const filteredTasks = allTasks.filter(task => {
+        if (task.status !== 'completed' || !task.completed) {
+          return true; // Keep non-completed tasks
+        }
+        const completedDate = new Date(task.completed);
+        return completedDate >= COMPLETED_TASK_CUTOFF;
+      });
+
+      const filteredCount = allTasks.length - filteredTasks.length;
+      if (filteredCount > 0) {
+        logger.log('[IPC] get-tasks: Filtered out', filteredCount, 'old completed tasks');
+      }
+      logger.log('[IPC] get-tasks: Found', filteredTasks.length, 'tasks (after filtering)');
+
+      return { success: true, data: filteredTasks };
     } catch (error) {
       logger.error('[IPC] get-tasks: Error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch tasks' };
